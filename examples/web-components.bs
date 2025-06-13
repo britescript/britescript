@@ -1,0 +1,239 @@
+// Web Components Example - Building interactive web elements
+// Shows how Britescript works great for DOM manipulation and components
+
+trait Renderable {
+  render(): string;
+}
+
+trait Interactive {
+  onClick(): void;
+  onHover(): void;
+}
+
+trait Validatable {
+  validate(): boolean;
+  getErrors(): string[];
+}
+
+struct Component {
+  id: string;
+  className: string;
+  content: string;
+  visible: boolean;
+}
+
+struct Button {
+  id: string;
+  text: string;
+  disabled: boolean;
+  variant: string;
+}
+
+struct FormField {
+  name: string;
+  value: string;
+  placeholder: string;
+  required: boolean;
+  pattern?: string;
+}
+
+struct Card {
+  title: string;
+  content: string;
+  imageUrl?: string;
+  actions: string[];
+}
+
+// Component implementations
+impl Renderable for Component {
+  render() {
+    const visibility = this.visible ? "" : "display: none;";
+    return `<div id="${this.id}" class="${this.className}" style="${visibility}">
+      ${this.content}
+    </div>`;
+  }
+}
+
+impl Renderable for Button {
+  render() {
+    const disabled = this.disabled ? "disabled" : "";
+    return `<button id="${this.id}" class="btn btn-${this.variant}" ${disabled}>
+      ${this.text}
+    </button>`;
+  }
+}
+
+impl Interactive for Button {
+  onClick() {
+    if (!this.disabled) {
+      console.log(`Button "${this.text}" clicked!`);
+    }
+  }
+  
+  onHover() {
+    console.log(`Hovering over "${this.text}"`);
+  }
+}
+
+impl Renderable for FormField {
+  render() {
+    const required = this.required ? "required" : "";
+    const pattern = this.pattern ? `pattern="${this.pattern}"` : "";
+    return `<input 
+      name="${this.name}" 
+      value="${this.value}"
+      placeholder="${this.placeholder}"
+      ${required}
+      ${pattern}
+    />`;
+  }
+}
+
+impl Validatable for FormField {
+  validate() {
+    if (this.required && !this.value.trim()) {
+      return false;
+    }
+    if (this.pattern && !new RegExp(this.pattern).test(this.value)) {
+      return false;
+    }
+    return true;
+  }
+  
+  getErrors() {
+    const errors = [];
+    if (this.required && !this.value.trim()) {
+      errors.push(`${this.name} is required`);
+    }
+    if (this.pattern && this.value && !new RegExp(this.pattern).test(this.value)) {
+      errors.push(`${this.name} format is invalid`);
+    }
+    return errors;
+  }
+}
+
+impl Renderable for Card {
+  render() {
+    const image = this.imageUrl 
+      ? `<img src="${this.imageUrl}" alt="${this.title}" />` 
+      : "";
+    
+    const actions = this.actions
+      .map(action => `<button class="card-action">${action}</button>`)
+      .join("");
+    
+    return `<div class="card">
+      ${image}
+      <div class="card-content">
+        <h3>${this.title}</h3>
+        <p>${this.content}</p>
+      </div>
+      <div class="card-actions">
+        ${actions}
+      </div>
+    </div>`;
+  }
+}
+
+// Web application logic
+console.log("=== Web Components Demo ===\n");
+
+// Create components
+const header = {
+  id: "header",
+  className: "header-component",
+  content: "<h1>Welcome to Britescript Web!</h1>",
+  visible: true
+};
+
+const primaryButton = {
+  id: "primary-btn",
+  text: "Get Started",
+  disabled: false,
+  variant: "primary"
+};
+
+const secondaryButton = {
+  id: "secondary-btn", 
+  text: "Learn More",
+  disabled: false,
+  variant: "secondary"
+};
+
+const emailField = {
+  name: "email",
+  value: "",
+  placeholder: "Enter your email",
+  required: true,
+  pattern: "^[^@]+@[^@]+\\.[^@]+$"
+};
+
+const passwordField = {
+  name: "password",
+  value: "",
+  placeholder: "Enter password",
+  required: true
+};
+
+const profileCard = {
+  title: "John Doe",
+  content: "Full-stack developer passionate about clean code and modern tools.",
+  imageUrl: "https://via.placeholder.com/150",
+  actions: ["Follow", "Message", "Share"]
+};
+
+// Render components
+console.log("=== Rendered Components ===");
+
+let html = ""
+html = header.render()
+html |> console.log;
+
+primaryButton.render() |> console.log;
+secondaryButton.render() |> console.log;
+
+console.log("\n=== Form Fields ===");
+emailField.render() |> console.log;
+passwordField.render() |> console.log;
+
+console.log("\n=== Card Component ===");
+profileCard.render() |> console.log;
+
+// Simulate interactions
+console.log("\n=== Interactions ===");
+primaryButton.onClick();
+primaryButton.onHover();
+
+// Form validation demo
+console.log("\n=== Form Validation ===");
+emailField.value = "invalid-email";
+let isValid = emailField.validate()
+console.log("Email valid:", isValid);
+
+if (!isValid) {
+  let errors = emailField.getErrors()
+  errors.forEach(error => console.log("Error:", error));
+}
+
+// Pipe operations for component processing
+let componentClass = "  my-component-class  "
+componentClass |> trim |> console.log;
+
+// Component factory with pipes
+function createNotification(message: string, type: string): Component {
+  return {
+    id: `notification-${Date.now()}`,
+    className: `notification notification-${type}`,
+    content: message,
+    visible: true
+  };
+}
+
+let notification = "  System update complete!  "
+notification 
+  |> trim 
+  |> (msg => createNotification(msg, "success"))
+  |> (comp => comp.render())
+  |> console.log;
+
+console.log("\n🌐 Web components demo complete!");

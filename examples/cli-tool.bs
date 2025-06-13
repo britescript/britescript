@@ -1,0 +1,394 @@
+// CLI Tool Example - Building command-line applications
+// Demonstrates argument parsing, configuration, and command patterns
+
+trait Executable {
+  execute(args: string[]): Promise<number>;
+}
+
+trait Configurable {
+  loadConfig(path?: string): void;
+  saveConfig(path?: string): void;
+}
+
+trait Loggable {
+  log(level: string, message: string): void;
+  debug(message: string): void;
+  error(message: string): void;
+}
+
+struct CliConfig {
+  verbose: boolean;
+  outputFormat: string;
+  outputPath: string;
+  apiKey?: string;
+  maxRetries: number;
+}
+
+struct Command {
+  name: string;
+  description: string;
+  aliases: string[];
+  requiredArgs: string[];
+  optionalArgs: string[];
+}
+
+struct Logger {
+  level: string;
+  timestamp: boolean;
+  colors: boolean;
+}
+
+struct FileProcessor {
+  inputPath: string;
+  outputPath: string;
+  format: string;
+  options: Record<string, any>;
+}
+
+// Implement CLI traits
+impl Configurable for CliConfig {
+  loadConfig(path?: string) {
+    const configPath = path || './config.json';
+    console.log(`📄 Loading config from: ${configPath}`);
+    // Simulate config loading
+    this.verbose = true;
+    this.outputFormat = 'json';
+  }
+  
+  saveConfig(path?: string) {
+    const configPath = path || './config.json';
+    console.log(`💾 Saving config to: ${configPath}`);
+    // Simulate config saving
+  }
+}
+
+impl Loggable for Logger {
+  log(level: string, message: string) {
+    const timestamp = this.timestamp ? new Date().toISOString() : '';
+    const prefix = this.colors ? this.getColorPrefix(level) : `[${level.toUpperCase()}]`;
+    const output = `${timestamp} ${prefix} ${message}`;
+    console.log(output);
+  }
+  
+  debug(message: string) {
+    this.log('debug', message);
+  }
+  
+  error(message: string) {
+    this.log('error', message);
+  }
+  
+  getColorPrefix(level: string): string {
+    switch (level) {
+      case 'error': return '🔴 [ERROR]';
+      case 'warn': return '🟡 [WARN]';
+      case 'info': return '🔵 [INFO]';
+      case 'debug': return '🟢 [DEBUG]';
+      default: return `[${level.toUpperCase()}]`;
+    }
+  }
+}
+
+impl Executable for FileProcessor {
+  async execute(args: string[]) {
+    const logger = createLogger(true, true);
+    
+    logger.log('info', `Processing file: ${this.inputPath}`);
+    logger.debug(`Output format: ${this.format}`);
+    
+    // Simulate file processing
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    logger.log('info', `✅ File processed successfully`);
+    logger.log('info', `📁 Output saved to: ${this.outputPath}`);
+    
+    return 0; // Success exit code
+  }
+}
+
+// CLI utility functions
+function parseArgs(args: string[]): Record<string, any> {
+  const parsed: Record<string, any> = {
+    _: [], // positional arguments
+    flags: {},
+    options: {}
+  };
+  
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    
+    if (arg.startsWith('--')) {
+      // Long option: --verbose or --output=file.json
+      const [key, value] = arg.slice(2).split('=');
+      if (value !== undefined) {
+        parsed.options[key] = value;
+      } else if (args[i + 1] && !args[i + 1].startsWith('-')) {
+        parsed.options[key] = args[++i];
+      } else {
+        parsed.flags[key] = true;
+      }
+    } else if (arg.startsWith('-')) {
+      // Short option: -v or -o file.json
+      const key = arg.slice(1);
+      if (args[i + 1] && !args[i + 1].startsWith('-')) {
+        parsed.options[key] = args[++i];
+      } else {
+        parsed.flags[key] = true;
+      }
+    } else {
+      // Positional argument
+      parsed._.push(arg);
+    }
+  }
+  
+  return parsed;
+}
+
+function createLogger(timestamp: boolean = false, colors: boolean = true): Logger {
+  return {
+    level: 'info',
+    timestamp,
+    colors
+  };
+}
+
+function createCommand(name: string, description: string, aliases: string[] = []): Command {
+  return {
+    name,
+    description,
+    aliases,
+    requiredArgs: [],
+    optionalArgs: []
+  };
+}
+
+function createFileProcessor(inputPath: string, outputPath: string, format: string = 'json'): FileProcessor {
+  return {
+    inputPath,
+    outputPath,
+    format,
+    options: {}
+  };
+}
+
+// CLI Application class
+class CliApp {
+  private commands: Map<string, Command> = new Map();
+  private config: CliConfig;
+  private logger: Logger;
+
+  constructor() {
+    this.config = {
+      verbose: false,
+      outputFormat: 'json',
+      outputPath: './output',
+      maxRetries: 3
+    };
+    this.logger = createLogger();
+  }
+
+  registerCommand(command: Command): void {
+    this.commands.set(command.name, command);
+    command.aliases.forEach(alias => {
+      this.commands.set(alias, command);
+    });
+  }
+
+  async run(args: string[]): Promise<number> {
+    const parsed = parseArgs(args);
+    
+    // Handle global flags
+    if (parsed.flags.help || parsed.flags.h) {
+      this.showHelp();
+      return 0;
+    }
+    
+    if (parsed.flags.version || parsed.flags.v) {
+      console.log('CLI Tool v1.0.0');
+      return 0;
+    }
+    
+    if (parsed.flags.verbose) {
+      this.config.verbose = true;
+      this.logger.level = 'debug';
+    }
+    
+    const commandName = parsed._[0];
+    if (!commandName) {
+      this.logger.error('No command specified');
+      this.showHelp();
+      return 1;
+    }
+    
+    const command = this.commands.get(commandName);
+    if (!command) {
+      this.logger.error(`Unknown command: ${commandName}`);
+      return 1;
+    }
+    
+    return await this.executeCommand(command, parsed);
+  }
+
+  private async executeCommand(command: Command, parsed: any): Promise<number> {
+    this.logger.debug(`Executing command: ${command.name}`);
+    
+    switch (command.name) {
+      case 'process':
+        return await this.handleProcessCommand(parsed);
+      case 'config':
+        return await this.handleConfigCommand(parsed);
+      case 'convert':
+        return await this.handleConvertCommand(parsed);
+      default:
+        this.logger.error(`Command not implemented: ${command.name}`);
+        return 1;
+    }
+  }
+
+  private async handleProcessCommand(parsed: any): Promise<number> {
+    const inputFile = parsed._[1];
+    if (!inputFile) {
+      this.logger.error('Input file required for process command');
+      return 1;
+    }
+    
+    const outputFile = parsed.options.output || parsed.options.o || `${inputFile}.processed`;
+    const format = parsed.options.format || 'json';
+    
+    const processor = createFileProcessor(inputFile, outputFile, format);
+    return await processor.execute(parsed._);
+  }
+
+  private async handleConfigCommand(parsed: any): Promise<number> {
+    const action = parsed._[1];
+    
+    switch (action) {
+      case 'show':
+        console.log('Current configuration:');
+        console.log(JSON.stringify(this.config, null, 2));
+        break;
+      case 'set':
+        const key = parsed._[2];
+        const value = parsed._[3];
+        if (key && value !== undefined) {
+          (this.config as any)[key] = value;
+          this.logger.log('info', `Set ${key} = ${value}`);
+        }
+        break;
+      default:
+        this.logger.error('Config action required: show, set');
+        return 1;
+    }
+    
+    return 0;
+  }
+
+  private async handleConvertCommand(parsed: any): Promise<number> {
+    const inputFile = parsed._[1];
+    const outputFormat = parsed.options.to || 'json';
+    
+    if (!inputFile) {
+      this.logger.error('Input file required for convert command');
+      return 1;
+    }
+    
+    this.logger.log('info', `Converting ${inputFile} to ${outputFormat}`);
+    
+    // Simulate conversion with pipes
+    let result = inputFile
+      |> (file => `Processing ${file}`)
+      |> (msg => { this.logger.debug(msg); return inputFile; })
+      |> (file => file.replace(/\.[^.]+$/, `.${outputFormat}`));
+    
+    this.logger.log('info', `✅ Converted to: ${result}`);
+    return 0;
+  }
+
+  private showHelp(): void {
+    console.log(`CLI Tool - File processing utility
+
+USAGE:
+  cli-tool <command> [options]
+
+COMMANDS:
+  process <file>     Process a file
+  convert <file>     Convert file format
+  config <action>    Manage configuration
+
+GLOBAL OPTIONS:
+  -v, --verbose      Enable verbose output
+  -h, --help         Show this help
+  --version          Show version
+
+EXAMPLES:
+  cli-tool process data.txt --output result.json
+  cli-tool convert data.csv --to json
+  cli-tool config show
+  cli-tool config set verbose true`);
+  }
+}
+
+// Demo CLI application
+console.log("=== CLI Tool Demo ===\n");
+
+const app = new CliApp();
+
+// Register commands
+app.registerCommand(createCommand('process', 'Process files with various options', ['p']));
+app.registerCommand(createCommand('convert', 'Convert between file formats', ['conv']));
+app.registerCommand(createCommand('config', 'Manage application configuration', ['cfg']));
+
+// Simulate CLI usage
+const testCommands = [
+  ['process', 'data.txt', '--output', 'result.json', '--verbose'],
+  ['convert', 'data.csv', '--to', 'json'],
+  ['config', 'show'],
+  ['config', 'set', 'maxRetries', '5'],
+  ['--help']
+];
+
+for (const command of testCommands) {
+  console.log(`\n$ cli-tool ${command.join(' ')}`);
+  let exitCode = await app.run(command);
+  
+  // Use pipes for exit code formatting
+  let status = exitCode === 0 ? 'SUCCESS' : 'FAILED'
+  let message = `Exit code: ${exitCode} (${status})`
+  message |> (msg => `[${msg}]`) |> console.log;
+}
+
+// Pipeline processing simulation
+console.log("\n=== File Processing Pipeline ===");
+
+const files = ['data1.txt', 'data2.csv', 'data3.json'];
+
+let processingResults = files
+  |> (files => files.map(file => ({ file, size: Math.floor(Math.random() * 1000) + 100 })))
+  |> (items => items.filter(item => item.size > 200))
+  |> (items => items.map(item => ({
+      ...item,
+      processed: true,
+      outputFile: item.file.replace(/\.[^.]+$/, '.processed')
+    })));
+
+processingResults.forEach(result => {
+  let message = `✅ ${result.file} (${result.size}KB) → ${result.outputFile}`
+  message |> console.log;
+});
+
+// Configuration management with pipes
+console.log("\n=== Configuration Pipeline ===");
+
+let configUpdates = [
+  { key: 'verbose', value: 'true' },
+  { key: 'outputFormat', value: 'yaml' },
+  { key: 'maxRetries', value: '10' }
+];
+
+configUpdates
+  |> (updates => updates.map(u => `${u.key}=${u.value}`))
+  |> (formatted => formatted.join(', '))
+  |> (config => `Updated config: ${config}`)
+  |> console.log;
+
+console.log("\n🔧 CLI tool demo complete!");

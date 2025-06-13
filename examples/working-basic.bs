@@ -1,0 +1,80 @@
+// Working Basic Features - Core Britescript syntax without method bodies
+// This example showcases structs, traits, impl blocks, and pipes
+
+trait Display {
+  show(): string;
+}
+
+trait Greet {
+  greet(name: string): string;
+}
+
+struct User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+struct Product {
+  id: number;
+  title: string;
+  price: number;
+}
+
+// Empty implementations (method bodies not yet fully supported)
+impl Display for User {
+  show() {
+  }
+}
+
+impl Greet for User {
+  greet(name: string) {
+  }
+}
+
+impl Display for Product {
+  show() {
+  }
+}
+
+// TypeScript/JavaScript code works seamlessly
+const users = [
+  { id: 1, name: "Alice", email: "alice@example.com" },
+  { id: 2, name: "Bob", email: "bob@example.com" },
+];
+
+const products = [
+  { id: 1, title: "Laptop", price: 999.99 },
+  { id: 2, title: "Mouse", price: 29.99 },
+];
+
+function createUser(name: string, email: string) {
+  return {
+    id: users.length + 1,
+    name,
+    email,
+  };
+}
+
+// Pipe operations showcase
+let message = "  Welcome to Britescript Working Example!  "
+message |> trim |> toUpperCase |> console.log
+
+console.log("\n=== Users ===");
+users.forEach(user => {
+  console.log(`User #${user.id}: ${user.name} (${user.email})`);
+});
+
+console.log("\n=== Products ===");
+products.forEach(product => {
+  console.log(`${product.title} - $${product.price}`);
+});
+
+// Pipe with string methods
+let announcement = "  britescript traits and structs work great  "
+announcement 
+  |> trim 
+  |> toUpperCase 
+  |> console.log
+
+console.log("\n🎉 Working basic features demo complete!");

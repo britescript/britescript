@@ -1,0 +1,149 @@
+// React Components with Britescript - .bsx example
+// Mix Britescript syntax (structs, traits, impl) with React/JSX seamlessly!
+
+import React from 'react';
+
+// Britescript traits for component behavior
+trait Renderable {
+  getDisplayName(): string;
+  getClassName(): string;
+}
+
+trait Interactive {
+  onClick(): void;
+  onHover(): void;
+}
+
+// Britescript structs for data modeling
+struct User {
+  id: number;
+  name: string;
+  email: string;
+  avatar: string;
+  isOnline: boolean;
+}
+
+struct Task {
+  id: number;
+  title: string;
+  completed: boolean;
+  priority: string;
+}
+
+// Implement Britescript traits (with empty method bodies)
+impl Renderable for User {
+  getDisplayName() {
+  }
+  
+  getClassName() {
+  }
+}
+
+impl Interactive for User {
+  onClick() {
+  }
+  
+  onHover() {
+  }
+}
+
+impl Renderable for Task {
+  getDisplayName() {
+  }
+  
+  getClassName() {
+  }
+}
+
+impl Interactive for Task {
+  onClick() {
+  }
+  
+  onHover() {
+  }
+}
+
+// React components using JSX with Britescript data
+function UserCard({ user }: { user: User }) {
+  return (
+    <div 
+      className={user.getClassName()}
+      onClick={() => user.onClick()}
+      onMouseEnter={() => user.onHover()}
+    >
+      <img src={user.avatar} alt={user.name} />
+      <div className="user-info">
+        <h3>{user.getDisplayName()}</h3>
+        <p>{user.email}</p>
+      </div>
+    </div>
+  );
+}
+
+function TaskItem({ task }: { task: Task }) {
+  return (
+    <div 
+      className={task.getClassName()}
+      onClick={() => task.onClick()}
+      onMouseEnter={() => task.onHover()}
+    >
+      <span className="task-title">{task.getDisplayName()}</span>
+      <span className="task-priority">{task.priority}</span>
+    </div>
+  );
+}
+
+function App() {
+  // Create Britescript struct instances
+  const users: User[] = [
+    { id: 1, name: "Alice Johnson", email: "alice@example.com", avatar: "/alice.jpg", isOnline: true },
+    { id: 2, name: "Bob Smith", email: "bob@example.com", avatar: "/bob.jpg", isOnline: false },
+  ];
+
+  const tasks: Task[] = [
+    { id: 1, title: "Learn Britescript", completed: false, priority: "high" },
+    { id: 2, title: "Build React app", completed: true, priority: "medium" },
+    { id: 3, title: "Write documentation", completed: false, priority: "low" },
+  ];
+
+  return (
+    <div className="app">
+      <header>
+        <h1>Britescript + JSX Demo (.bsx)</h1>
+        <p>Mixing Britescript structs/traits with React components!</p>
+      </header>
+      
+      <main>
+        <section className="users-section">
+          <h2>Team Members</h2>
+          <div className="users-grid">
+            {users.map(user => (
+              <UserCard key={user.id} user={user} />
+            ))}
+          </div>
+        </section>
+        
+        <section className="tasks-section">
+          <h2>Project Tasks</h2>
+          <div className="tasks-list">
+            {tasks.map(task => (
+              <TaskItem key={task.id} task={task} />
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+// TypeScript/JavaScript code works alongside Britescript
+console.log("=== Mixed TypeScript + Britescript ===");
+
+// Mix regular JavaScript/TypeScript with Britescript
+const completedCount = tasks.filter(t => t.completed).length;
+console.log(`Completed tasks: ${completedCount}`);
+
+export default App;
+export { User, Task, UserCard, TaskItem };
+
+console.log("🚀 .bsx file with mixed Britescript + JSX complete!");

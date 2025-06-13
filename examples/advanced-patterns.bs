@@ -1,0 +1,429 @@
+// Advanced Patterns - Complex language features and patterns
+// Demonstrates advanced trait composition, error handling, and design patterns
+
+trait Cloneable<T> {
+  clone(): T;
+}
+
+trait Comparable<T> {
+  compareTo(other: T): number;
+  equals(other: T): boolean;
+}
+
+trait Serializable {
+  serialize(): string;
+  deserialize(data: string): void;
+}
+
+trait Observable<T> {
+  subscribe(observer: (data: T) => void): void;
+  notify(data: T): void;
+}
+
+trait Cacheable<K, V> {
+  get(key: K): V | undefined;
+  set(key: K, value: V): void;
+  clear(): void;
+}
+
+// Complex struct with multiple trait implementations
+struct SmartCache<K, V> {
+  data: Map<K, V>;
+  maxSize: number;
+  ttl: number;
+  observers: ((key: K, value: V) => void)[];
+}
+
+struct TimestampedValue<T> {
+  value: T;
+  timestamp: number;
+  metadata: Record<string, any>;
+}
+
+struct Result<T, E> {
+  success: boolean;
+  data?: T;
+  error?: E;
+  timestamp: number;
+}
+
+struct EventBus {
+  listeners: Map<string, ((data: any) => void)[]>;
+  history: Array<{ event: string; data: any; timestamp: number }>;
+}
+
+// Advanced trait implementations
+impl<K, V> Cacheable<K, V> for SmartCache<K, V> {
+  get(key: K) {
+    return this.data.get(key);
+  }
+  
+  set(key: K, value: V) {
+    // Implement LRU eviction if needed
+    if (this.data.size >= this.maxSize) {
+      const firstKey = this.data.keys().next().value;
+      this.data.delete(firstKey);
+    }
+    
+    this.data.set(key, value);
+    this.notify(key, value);
+  }
+  
+  clear() {
+    this.data.clear();
+  }
+  
+  notify(key: K, value: V) {
+    this.observers.forEach(observer => observer(key, value));
+  }
+}
+
+impl<T> Cloneable<TimestampedValue<T>> for TimestampedValue<T> {
+  clone() {
+    return {
+      value: this.value,
+      timestamp: this.timestamp,
+      metadata: { ...this.metadata }
+    };
+  }
+}
+
+impl<T> Comparable<TimestampedValue<T>> for TimestampedValue<T> {
+  compareTo(other: TimestampedValue<T>) {
+    return this.timestamp - other.timestamp;
+  }
+  
+  equals(other: TimestampedValue<T>) {
+    return this.timestamp === other.timestamp;
+  }
+}
+
+impl<T, E> Serializable for Result<T, E> {
+  serialize() {
+    return JSON.stringify({
+      success: this.success,
+      data: this.data,
+      error: this.error,
+      timestamp: this.timestamp
+    });
+  }
+  
+  deserialize(data: string) {
+    const parsed = JSON.parse(data);
+    this.success = parsed.success;
+    this.data = parsed.data;
+    this.error = parsed.error;
+    this.timestamp = parsed.timestamp;
+  }
+}
+
+impl Observable<{ event: string; data: any }> for EventBus {
+  subscribe(observer: (data: { event: string; data: any }) => void) {
+    // For simplicity, we'll track all observers globally
+    console.log("Observer subscribed to EventBus");
+  }
+  
+  notify(eventData: { event: string; data: any }) {
+    const entry = {
+      event: eventData.event,
+      data: eventData.data,
+      timestamp: Date.now()
+    };
+    this.history.push(entry);
+    
+    const listeners = this.listeners.get(eventData.event) || [];
+    listeners.forEach(listener => listener(eventData.data));
+  }
+}
+
+// Factory functions and builders
+function createSmartCache<K, V>(maxSize: number = 100, ttl: number = 3600000): SmartCache<K, V> {
+  return {
+    data: new Map(),
+    maxSize,
+    ttl,
+    observers: []
+  };
+}
+
+function createTimestampedValue<T>(value: T, metadata: Record<string, any> = {}): TimestampedValue<T> {
+  return {
+    value,
+    timestamp: Date.now(),
+    metadata
+  };
+}
+
+function createSuccess<T>(data: T): Result<T, string> {
+  return {
+    success: true,
+    data,
+    timestamp: Date.now()
+  };
+}
+
+function createError<T>(error: string): Result<T, string> {
+  return {
+    success: false,
+    error,
+    timestamp: Date.now()
+  };
+}
+
+function createEventBus(): EventBus {
+  return {
+    listeners: new Map(),
+    history: []
+  };
+}
+
+// Advanced patterns and utilities
+class AsyncProcessor<T, R> {
+  private queue: T[] = [];
+  private processing = false;
+  private processor: (item: T) => Promise<R>;
+  private resultCache: SmartCache<string, R>;
+
+  constructor(processor: (item: T) => Promise<R>) {
+    this.processor = processor;
+    this.resultCache = createSmartCache<string, R>(50);
+  }
+
+  async enqueue(item: T): Promise<R> {
+    const key = JSON.stringify(item);
+    const cached = this.resultCache.get(key);
+    
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    this.queue.push(item);
+    if (!this.processing) {
+      this.processing = true;
+      return await this.processQueue();
+    }
+
+    // Wait for processing to complete
+    return new Promise((resolve) => {
+      const checkResult = () => {
+        const result = this.resultCache.get(key);
+        if (result !== undefined) {
+          resolve(result);
+        } else {
+          setTimeout(checkResult, 10);
+        }
+      };
+      checkResult();
+    });
+  }
+
+  private async processQueue(): Promise<R> {
+    while (this.queue.length > 0) {
+      const item = this.queue.shift()!;
+      const key = JSON.stringify(item);
+      
+      try {
+        const result = await this.processor(item);
+        this.resultCache.set(key, result);
+      } catch (error) {
+        console.error('Processing error:', error);
+      }
+    }
+    
+    this.processing = false;
+    return this.resultCache.get(JSON.stringify(this.queue[0]))!;
+  }
+}
+
+// Functional composition patterns
+const pipe = <T>(...fns: Array<(arg: T) => T>) => (value: T): T =>
+  fns.reduce((acc, fn) => fn(acc), value);
+
+const compose = <T>(...fns: Array<(arg: T) => T>) => (value: T): T =>
+  fns.reduceRight((acc, fn) => fn(acc), value);
+
+// Monadic error handling
+class Maybe<T> {
+  constructor(private value: T | null | undefined) {}
+
+  static of<T>(value: T): Maybe<T> {
+    return new Maybe(value);
+  }
+
+  static none<T>(): Maybe<T> {
+    return new Maybe<T>(null);
+  }
+
+  map<U>(fn: (value: T) => U): Maybe<U> {
+    return this.value != null ? Maybe.of(fn(this.value)) : Maybe.none<U>();
+  }
+
+  flatMap<U>(fn: (value: T) => Maybe<U>): Maybe<U> {
+    return this.value != null ? fn(this.value) : Maybe.none<U>();
+  }
+
+  filter(predicate: (value: T) => boolean): Maybe<T> {
+    return this.value != null && predicate(this.value) ? this : Maybe.none<T>();
+  }
+
+  getOrElse(defaultValue: T): T {
+    return this.value != null ? this.value : defaultValue;
+  }
+
+  isSome(): boolean {
+    return this.value != null;
+  }
+
+  isNone(): boolean {
+    return this.value == null;
+  }
+}
+
+// Demo: Advanced patterns in action
+console.log("=== Advanced Patterns Demo ===\n");
+
+// Smart cache with observers
+const userCache = createSmartCache<string, any>(5);
+
+userCache.observers.push((key, value) => {
+  let message = `Cache updated: ${key} = ${JSON.stringify(value)}`
+  message |> console.log;
+});
+
+// Populate cache
+const users = [
+  { id: "1", name: "Alice", role: "admin" },
+  { id: "2", name: "Bob", role: "user" },
+  { id: "3", name: "Charlie", role: "moderator" }
+];
+
+users.forEach(user => {
+  userCache.set(user.id, user);
+});
+
+console.log("\n=== Timestamped Values ===");
+
+// Timestamped values with comparison
+const timestamps = [
+  createTimestampedValue("First event", { priority: "high" }),
+  createTimestampedValue("Second event", { priority: "low" }),
+  createTimestampedValue("Third event", { priority: "medium" })
+];
+
+// Sort by timestamp using trait method
+let sortedEvents = timestamps
+  |> (events => events.sort((a, b) => a.compareTo(b)))
+  |> (events => events.map(e => `${e.value} (${new Date(e.timestamp).toISOString()})`));
+
+sortedEvents.forEach(event => console.log(event));
+
+console.log("\n=== Result Pattern ===");
+
+// Result pattern for error handling
+async function fetchUserData(id: string): Promise<Result<any, string>> {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  const user = userCache.get(id);
+  return user ? createSuccess(user) : createError(`User ${id} not found`);
+}
+
+const userIds = ["1", "999", "2"];
+
+for (const id of userIds) {
+  const result = await fetchUserData(id);
+  
+  let message = result.success 
+    ? `✅ Found user: ${result.data?.name}`
+    : `❌ Error: ${result.error}`
+  
+  message |> console.log;
+}
+
+console.log("\n=== Event Bus Pattern ===");
+
+// Event-driven architecture
+const eventBus = createEventBus();
+
+// Register event listeners
+eventBus.listeners.set("user.created", [
+  (data) => console.log(`📧 Send welcome email to ${data.email}`),
+  (data) => console.log(`📊 Track user registration: ${data.name}`)
+]);
+
+eventBus.listeners.set("user.updated", [
+  (data) => console.log(`🔄 Sync user data: ${data.id}`)
+]);
+
+// Emit events
+eventBus.notify({ event: "user.created", data: { name: "David", email: "david@example.com" }});
+eventBus.notify({ event: "user.updated", data: { id: "1", name: "Alice Updated" }});
+
+console.log("\n=== Async Processing Queue ===");
+
+// Async processor with caching
+const imageProcessor = new AsyncProcessor<string, string>(async (imagePath: string) => {
+  // Simulate image processing
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return `processed_${imagePath}`;
+});
+
+const images = ["photo1.jpg", "photo2.png", "photo1.jpg"]; // Note duplicate
+
+for (const image of images) {
+  let result = await imageProcessor.enqueue(image);
+  let message = `Image ${image} → ${result}`
+  message |> console.log;
+}
+
+console.log("\n=== Functional Composition ===");
+
+// Function composition with pipes
+const processText = pipe(
+  (text: string) => text.trim(),
+  (text: string) => text.toLowerCase(),
+  (text: string) => text.replace(/\s+/g, '-'),
+  (text: string) => text.replace(/[^a-z0-9-]/g, '')
+);
+
+let title = "  Advanced Patterns in Britescript!  "
+let slug = processText(title);
+let output = `Title: "${title}" → Slug: "${slug}"`
+output |> console.log;
+
+console.log("\n=== Maybe Monad ===");
+
+// Monadic error handling
+function parseInteger(str: string): Maybe<number> {
+  const num = parseInt(str, 10);
+  return isNaN(num) ? Maybe.none() : Maybe.of(num);
+}
+
+const numberStrings = ["42", "invalid", "100", ""];
+
+numberStrings.forEach(str => {
+  let result = parseInteger(str)
+    .filter(n => n > 0)
+    .map(n => n * 2)
+    .getOrElse(0);
+  
+  let message = `"${str}" → ${result}`
+  message |> console.log;
+});
+
+console.log("\n=== Serialization ===");
+
+// Serialization pattern
+const results = [
+  createSuccess({ message: "Operation completed" }),
+  createError("Network timeout"),
+  createSuccess({ data: [1, 2, 3] })
+];
+
+results.forEach((result, index) => {
+  let serialized = result.serialize();
+  let formatted = `Result ${index + 1}: ${serialized}`
+  formatted |> console.log;
+});
+
+console.log("\n🎯 Advanced patterns demo complete!");

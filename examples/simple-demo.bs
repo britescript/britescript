@@ -1,0 +1,52 @@
+// Simple Demo - What works today in Britescript
+// Core features that are fully functional
+
+trait Display {
+  show(): string;
+}
+
+struct User {
+  name: string;
+  age: number;
+}
+
+struct Product {
+  title: string;
+  price: number;
+}
+
+impl Display for User {
+  show() {
+  }
+}
+
+impl Display for Product {
+  show() {
+  }
+}
+
+// TypeScript integration works perfectly
+const users = [
+  { name: "Alice", age: 30 },
+  { name: "Bob", age: 25 },
+];
+
+console.log("=== Britescript Simple Demo ===");
+
+// Single-line pipes work great
+let message = "  Welcome to Britescript!  "
+message |> trim |> console.log
+
+let greeting = "  hello world  "
+greeting |> trim |> toUpperCase |> console.log
+
+// Display users
+users.forEach(user => {
+  console.log(`${user.name} is ${user.age} years old`);
+});
+
+// String processing with pipes
+let title = "  britescript demo  "
+title |> trim |> console.log
+
+console.log("🎉 Simple demo complete!");

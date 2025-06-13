@@ -1,0 +1,53 @@
+{
+  "name": "britescript",
+  "version": "0.0.1",
+  "description": "A simple language that compiles to TypeScript",
+  "module": "src/index.ts",
+  "main": "src/index.ts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime/index.ts",
+    "./plugin": "./src/plugin/index.ts"
+  },
+  "scripts": {
+    "build": "bun build --config ./build.config.ts",
+    "build:release": "bun scripts/build-release.ts",
+    "dev": "bun scripts/dev.ts",
+    "clean": "rm -rf dist/",
+    "test": "bun test",
+    "lint": "bunx @biomejs/biome lint .",
+    "format": "bunx @biomejs/biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "chevrotain": "^11.0.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "keywords": [
+    "britescript",
+    "typescript",
+    "compiler",
+    "language",
+    "structs",
+    "traits"
+  ],
+  "author": "Britescript Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/britescript/britescript"
+  },
+  "bugs": {
+    "url": "https://github.com/britescript/britescript/issues"
+  },
+  "homepage": "https://britescript.dev"
+}

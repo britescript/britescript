@@ -1,0 +1,17 @@
+# Bun configuration for Britescript
+
+[build]
+# Default build options
+target = "bun"
+format = "esm"
+minify = false
+sourcemap = "external"
+
+# Enable Britescript plugin globally
+preload = ["./src/plugin/preload.ts"]
+
+
+[dev]
+# Development server settings
+port = 3000
+hot = true

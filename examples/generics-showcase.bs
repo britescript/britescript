@@ -1,0 +1,119 @@
+// Generics Showcase - Advanced type system features
+// Demonstrates generic structs, impl blocks, and type safety
+
+trait Serializable<T> {
+  serialize(): string;
+}
+
+trait Container<T> {
+  get(): T;
+  set(value: T): void;
+}
+
+// Generic struct with multiple type parameters
+struct Pair<T, U> {
+  first: T;
+  second: U;
+}
+
+// Generic container struct
+struct Box<T> {
+  value: T;
+  created: number;
+}
+
+// Generic result type (like Rust's Result)
+struct Result<T, E> {
+  success: boolean;
+  value?: T;
+  error?: E;
+}
+
+// Implement Container trait for Box
+impl<T> Container<T> for Box<T> {
+  get() {
+    return this.value;
+  }
+  
+  set(value: T) {
+    this.value = value;
+  }
+}
+
+// Implement Serializable for Box
+impl<T> Serializable<Box<T>> for Box<T> {
+  serialize() {
+    return JSON.stringify({
+      value: this.value,
+      created: this.created,
+      timestamp: Date.now()
+    });
+  }
+}
+
+// TypeScript helper functions
+function createBox<T>(value: T): Box<T> {
+  return {
+    value,
+    created: Date.now()
+  };
+}
+
+function createPair<T, U>(first: T, second: U): Pair<T, U> {
+  return { first, second };
+}
+
+function createSuccess<T>(value: T): Result<T, string> {
+  return { success: true, value };
+}
+
+function createError<T>(error: string): Result<T, string> {
+  return { success: false, error };
+}
+
+// Demonstrate generic usage
+console.log("=== Generics Showcase ===\n");
+
+// String box
+const stringBox = createBox("Hello Generics!");
+console.log("String box:", stringBox.get());
+console.log("Serialized:", stringBox.serialize());
+
+// Number box
+const numberBox = createBox(42);
+numberBox.set(100);
+console.log("Number box:", numberBox.get());
+
+// Pair examples
+const stringNumberPair = createPair("Age", 25);
+const booleanStringPair = createPair(true, "Success");
+
+console.log("String-Number pair:", stringNumberPair);
+console.log("Boolean-String pair:", booleanStringPair);
+
+// Result type usage
+const successResult = createSuccess("Operation completed");
+const errorResult = createError("Something went wrong");
+
+console.log("Success result:", successResult);
+console.log("Error result:", errorResult);
+
+// Pipe operations with generics
+let boxValue = "  generic content  "
+const processedBox = createBox(boxValue);
+processedBox.get() |> trim |> toUpperCase |> console.log;
+
+// Array of generic boxes
+const boxes = [
+  createBox("First"),
+  createBox("Second"), 
+  createBox("Third")
+];
+
+console.log("\n=== Box Collection ===");
+boxes.forEach((box, index) => {
+  let message = `Box ${index + 1}: ${box.get()}`
+  message |> console.log;
+});
+
+console.log("\n🚀 Generics showcase complete!");

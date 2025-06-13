@@ -1,0 +1,95 @@
+// Basic Features Demo - Core Britescript syntax
+// This example showcases structs, traits, impl blocks, and pipes
+
+trait Display {
+  show(): string;
+}
+
+trait Greet {
+  greet(name: string): string;
+}
+
+struct User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+struct Product {
+  id: number;
+  title: string;
+  price: number;
+}
+
+// Implement traits for User
+impl Display for User {
+  show() {
+    return `User #${this.id}: ${this.name} (${this.email})`;
+  }
+}
+
+impl Greet for User {
+  greet(name: string) {
+    return `Hello ${name}, I'm ${this.name}!`;
+  }
+}
+
+// Implement traits for Product
+impl Display for Product {
+  show() {
+    return `${this.title} - $${this.price}`;
+  }
+}
+
+// TypeScript/JavaScript code works seamlessly
+const users: User[] = [
+  { id: 1, name: "Alice", email: "alice@example.com" },
+  { id: 2, name: "Bob", email: "bob@example.com" },
+];
+
+const products: Product[] = [
+  { id: 1, title: "Laptop", price: 999.99 },
+  { id: 2, title: "Mouse", price: 29.99 },
+];
+
+function createUser(name: string, email: string): User {
+  return {
+    id: users.length + 1,
+    name,
+    email,
+  };
+}
+
+// Pipe operations showcase
+let message = "  Welcome to Britescript Basic Features!  "
+message |> trim |> toUpperCase |> console.log
+
+console.log("\n=== Users ===");
+users.forEach(user => {
+  user.show() |> console.log;
+  user.greet("World") |> console.log;
+});
+
+console.log("\n=== Products ===");
+products.forEach(product => {
+  product.show() |> console.log;
+});
+
+// Pipe with custom functions
+function addExclamation(text: string): string {
+  return text + "!";
+}
+
+function makeTitle(text: string): string {
+  return `*** ${text} ***`;
+}
+
+let announcement = "britescript is awesome"
+announcement 
+  |> trim 
+  |> toUpperCase 
+  |> addExclamation 
+  |> makeTitle 
+  |> console.log
+
+console.log("\n🎉 Basic features demo complete!");

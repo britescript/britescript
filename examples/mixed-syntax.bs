@@ -1,0 +1,295 @@
+// Mixed Syntax Demo - Seamless TypeScript/JavaScript integration
+// Shows how Britescript and TypeScript/JavaScript work together perfectly
+
+// Import types and utilities (TypeScript)
+type Status = "active" | "inactive" | "pending";
+type Priority = "low" | "medium" | "high";
+
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  database: string;
+  ssl: boolean;
+}
+
+// Britescript trait definitions
+trait Persistable {
+  save(): Promise<boolean>;
+  delete(): Promise<boolean>;
+}
+
+trait Notifiable {
+  notify(message: string): void;
+}
+
+trait Timestamped {
+  getCreatedAt(): Date;
+  getUpdatedAt(): Date;
+}
+
+// Britescript struct with TypeScript types
+struct Task {
+  id: string;
+  title: string;
+  description: string;
+  status: Status;
+  priority: Priority;
+  assigneeId?: string;
+  dueDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+struct User {
+  id: string;
+  username: string;
+  email: string;
+  isActive: boolean;
+  preferences: Record<string, any>;
+}
+
+struct Project {
+  id: string;
+  name: string;
+  description: string;
+  ownerId: string;
+  tasks: Task[];
+  collaborators: string[];
+}
+
+// Implement Britescript traits
+impl Persistable for Task {
+  async save() {
+    // Simulate database save
+    console.log(`Saving task: ${this.title}`);
+    return true;
+  }
+  
+  async delete() {
+    console.log(`Deleting task: ${this.title}`);
+    return true;
+  }
+}
+
+impl Notifiable for User {
+  notify(message: string) {
+    console.log(`📧 Notification for ${this.username}: ${message}`);
+  }
+}
+
+impl Timestamped for Task {
+  getCreatedAt() {
+    return this.createdAt;
+  }
+  
+  getUpdatedAt() {
+    return this.updatedAt;
+  }
+}
+
+// Pure TypeScript/JavaScript functions
+const createId = (): string => {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+};
+
+const formatDate = (date: Date): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
+
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const calculateDaysUntilDue = (dueDate: Date): number => {
+  const now = new Date();
+  const diffTime = dueDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+// TypeScript classes for complex logic
+class TaskManager {
+  private tasks: Task[] = [];
+  private users: Map<string, User> = new Map();
+
+  addTask(task: Task): void {
+    this.tasks.push(task);
+    console.log(`✅ Added task: ${task.title}`);
+  }
+
+  getTasksByStatus(status: Status): Task[] {
+    return this.tasks.filter(task => task.status === status);
+  }
+
+  getTasksByPriority(priority: Priority): Task[] {
+    return this.tasks.filter(task => task.priority === priority);
+  }
+
+  assignTask(taskId: string, userId: string): boolean {
+    const task = this.tasks.find(t => t.id === taskId);
+    const user = this.users.get(userId);
+    
+    if (task && user) {
+      task.assigneeId = userId;
+      task.updatedAt = new Date();
+      user.notify(`You have been assigned task: ${task.title}`);
+      return true;
+    }
+    return false;
+  }
+
+  registerUser(user: User): void {
+    this.users.set(user.id, user);
+    console.log(`👤 Registered user: ${user.username}`);
+  }
+
+  getOverdueTasks(): Task[] {
+    const now = new Date();
+    return this.tasks.filter(task => 
+      task.dueDate && task.dueDate < now && task.status !== "completed"
+    );
+  }
+}
+
+// Factory functions using both syntaxes
+function createTask(title: string, description: string, priority: Priority): Task {
+  return {
+    id: createId(),
+    title,
+    description,
+    status: "pending" as Status,
+    priority,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+}
+
+function createUser(username: string, email: string): User | null {
+  if (!validateEmail(email)) {
+    console.error(`❌ Invalid email: ${email}`);
+    return null;
+  }
+
+  return {
+    id: createId(),
+    username,
+    email,
+    isActive: true,
+    preferences: {}
+  };
+}
+
+// Demo application
+console.log("=== Mixed Syntax Demo ===\n");
+
+const taskManager = new TaskManager();
+
+// Create users with TypeScript validation
+const alice = createUser("alice", "alice@example.com");
+const bob = createUser("bob", "bob@example.com");
+const charlie = createUser("charlie", "invalid-email"); // Will fail validation
+
+[alice, bob].filter(Boolean).forEach(user => {
+  if (user) {
+    taskManager.registerUser(user);
+  }
+});
+
+// Create tasks with Britescript structs
+const tasks = [
+  createTask("Implement login system", "Add authentication with JWT", "high"),
+  createTask("Write documentation", "Update API documentation", "medium"),
+  createTask("Fix navbar bug", "Responsive navbar issues on mobile", "high"),
+  createTask("Add unit tests", "Increase test coverage to 90%", "low")
+];
+
+// Add tasks to manager
+tasks.forEach(task => taskManager.addTask(task));
+
+// Assign tasks using mixed syntax
+if (alice && bob) {
+  taskManager.assignTask(tasks[0].id, alice.id);
+  taskManager.assignTask(tasks[2].id, bob.id);
+}
+
+console.log("\n=== Task Processing with Pipes ===");
+
+// Use pipes for data transformation
+let highPriorityTasks = taskManager.getTasksByPriority("high");
+
+highPriorityTasks.forEach(task => {
+  let taskInfo = `[${task.priority.toUpperCase()}] ${task.title}`
+  taskInfo |> console.log;
+  
+  // Pipe operations with method calls
+  task.getCreatedAt()
+    |> (date => formatDate(date))
+    |> (formatted => `Created: ${formatted}`)
+    |> console.log;
+});
+
+console.log("\n=== Status Summary ===");
+
+// Complex data processing with mixed syntax
+const statusCounts = tasks.reduce((acc, task) => {
+  acc[task.status] = (acc[task.status] || 0) + 1;
+  return acc;
+}, {} as Record<Status, number>);
+
+Object.entries(statusCounts).forEach(([status, count]) => {
+  let summary = `${status}: ${count} task${count !== 1 ? 's' : ''}`
+  summary |> console.log;
+});
+
+// Async operations with traits
+console.log("\n=== Persistence Operations ===");
+
+async function saveAllTasks() {
+  for (const task of tasks.slice(0, 2)) {
+    let result = await task.save();
+    let message = `Task "${task.title}" saved: ${result ? 'success' : 'failed'}`
+    message |> console.log;
+  }
+}
+
+await saveAllTasks();
+
+// Real-world pipeline combining everything
+console.log("\n=== Advanced Pipeline ===");
+
+let urgentTasks = tasks
+  |> (tasks => tasks.filter(t => t.priority === "high"))
+  |> (tasks => tasks.map(t => ({
+      ...t,
+      urgencyScore: t.priority === "high" ? 3 : t.priority === "medium" ? 2 : 1,
+      formattedDue: t.dueDate ? formatDate(t.dueDate) : "No due date"
+    })))
+  |> (tasks => tasks.sort((a, b) => b.urgencyScore - a.urgencyScore));
+
+urgentTasks.forEach((task, index) => {
+  let message = `${index + 1}. ${task.title} (Score: ${task.urgencyScore})`
+  message |> console.log;
+});
+
+// Functional composition with pipes
+const processTaskTitle = (title: string) => title
+  |> (t => t.toLowerCase())
+  |> (t => t.replace(/\s+/g, '-'))
+  |> (t => t.replace(/[^a-z0-9-]/g, ''))
+  |> (t => `task-${t}`);
+
+console.log("\n=== URL-friendly task IDs ===");
+tasks.forEach(task => {
+  let slug = processTaskTitle(task.title);
+  let output = `${task.title} → ${slug}`
+  output |> console.log;
+});
+
+console.log("\n🎯 Mixed syntax demo complete!");

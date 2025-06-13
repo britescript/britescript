@@ -1,0 +1,27 @@
+{
+  "name": "britescript-examples",
+  "version": "1.0.0",
+  "description": "Comprehensive examples showcasing Britescript features",
+  "type": "module",
+  "scripts": {
+    "basic": "brite run basic-features.bs",
+    "generics": "brite run generics-showcase.bs",
+    "web": "brite run web-components.bs",
+    "data": "brite run data-processing.bs",
+    "mixed": "brite run mixed-syntax.bs",
+    "cli": "brite run cli-tool.bs",
+    "advanced": "brite run advanced-patterns.bs",
+    "all": "npm run basic && npm run generics && npm run web && npm run data && npm run mixed && npm run cli && npm run advanced",
+    "demo": "npm run basic && npm run web && npm run data"
+  },
+  "keywords": [
+    "britescript",
+    "examples",
+    "traits",
+    "structs",
+    "pipes",
+    "typescript"
+  ],
+  "author": "Britescript Team",
+  "license": "MIT"
+}

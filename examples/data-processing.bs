@@ -1,0 +1,228 @@
+// Data Processing Pipeline - Real-world data transformation
+// Demonstrates pipes, functional programming, and data manipulation
+
+trait Transformable<T> {
+  transform<U>(fn: (item: T) => U): U;
+}
+
+trait Filterable<T> {
+  filter(predicate: (item: T) => boolean): T[];
+}
+
+trait Aggregatable<T> {
+  sum(key: keyof T): number;
+  average(key: keyof T): number;
+  count(): number;
+}
+
+struct DataPoint {
+  id: number;
+  timestamp: number;
+  value: number;
+  category: string;
+  metadata: Record<string, any>;
+}
+
+struct Dataset<T> {
+  name: string;
+  data: T[];
+  created: number;
+}
+
+struct Analytics {
+  total: number;
+  average: number;
+  min: number;
+  max: number;
+  count: number;
+}
+
+// Implement traits for Dataset
+impl<T> Filterable<T> for Dataset<T> {
+  filter(predicate: (item: T) => boolean) {
+    return this.data.filter(predicate);
+  }
+}
+
+impl<T> Aggregatable<DataPoint> for Dataset<DataPoint> {
+  sum(key: keyof DataPoint) {
+    return this.data.reduce((sum, item) => {
+      const value = item[key];
+      return sum + (typeof value === 'number' ? value : 0);
+    }, 0);
+  }
+  
+  average(key: keyof DataPoint) {
+    const total = this.sum(key);
+    return this.data.length > 0 ? total / this.data.length : 0;
+  }
+  
+  count() {
+    return this.data.length;
+  }
+}
+
+// Data processing functions
+function createDataPoint(value: number, category: string): DataPoint {
+  return {
+    id: Math.floor(Math.random() * 10000),
+    timestamp: Date.now(),
+    value,
+    category,
+    metadata: {}
+  };
+}
+
+function createDataset<T>(name: string, data: T[]): Dataset<T> {
+  return {
+    name,
+    data,
+    created: Date.now()
+  };
+}
+
+function analyzeData(values: number[]): Analytics {
+  if (values.length === 0) {
+    return { total: 0, average: 0, min: 0, max: 0, count: 0 };
+  }
+  
+  const total = values.reduce((sum, val) => sum + val, 0);
+  const average = total / values.length;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  
+  return { total, average, min, max, count: values.length };
+}
+
+// Pipeline functions for data transformation
+function filterByCategory(category: string) {
+  return (data: DataPoint[]) => data.filter(d => d.category === category);
+}
+
+function filterByThreshold(threshold: number) {
+  return (data: DataPoint[]) => data.filter(d => d.value >= threshold);
+}
+
+function extractValues(data: DataPoint[]): number[] {
+  return data.map(d => d.value);
+}
+
+function sortByValue(data: DataPoint[]): DataPoint[] {
+  return [...data].sort((a, b) => b.value - a.value);
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+}
+
+// Create sample data
+console.log("=== Data Processing Pipeline ===\n");
+
+const salesData = [
+  createDataPoint(1250.50, "electronics"),
+  createDataPoint(890.25, "clothing"),
+  createDataPoint(2100.00, "electronics"),
+  createDataPoint(340.75, "books"),
+  createDataPoint(1580.30, "electronics"),
+  createDataPoint(720.15, "clothing"),
+  createDataPoint(95.99, "books"),
+  createDataPoint(3200.00, "electronics"),
+  createDataPoint(450.80, "clothing"),
+  createDataPoint(189.99, "books")
+];
+
+const dataset = createDataset("Q4 Sales Data", salesData);
+
+console.log(`Dataset: ${dataset.name}`);
+console.log(`Total records: ${dataset.count()}`);
+
+// Data processing with pipes
+console.log("\n=== Processing Electronics Sales ===");
+
+let electronicsAnalysis = salesData
+  |> filterByCategory("electronics")
+  |> filterByThreshold(1000)
+  |> extractValues
+  |> analyzeData;
+
+console.log("Electronics (>$1000) Analysis:");
+console.log(`Total: ${formatCurrency(electronicsAnalysis.total)}`);
+console.log(`Average: ${formatCurrency(electronicsAnalysis.average)}`);
+console.log(`Min: ${formatCurrency(electronicsAnalysis.min)}`);
+console.log(`Max: ${formatCurrency(electronicsAnalysis.max)}`);
+console.log(`Count: ${electronicsAnalysis.count}`);
+
+console.log("\n=== Top Sales by Category ===");
+
+// Process each category
+const categories = ["electronics", "clothing", "books"];
+
+categories.forEach(category => {
+  let categoryData = salesData
+    |> filterByCategory(category)
+    |> sortByValue;
+  
+  let topSale = categoryData[0];
+  let categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+  
+  console.log(`${categoryName}: ${formatCurrency(topSale.value)} (ID: ${topSale.id})`);
+});
+
+// Complex pipeline with multiple transformations
+console.log("\n=== Complex Data Pipeline ===");
+
+let processedData = salesData
+  |> (data => data.filter(d => d.value > 500))
+  |> sortByValue
+  |> (data => data.slice(0, 5))
+  |> (data => data.map(d => ({
+      ...d,
+      formattedValue: formatCurrency(d.value),
+      daysSinceCreated: Math.floor((Date.now() - d.timestamp) / (1000 * 60 * 60 * 24))
+    })));
+
+console.log("Top 5 sales over $500:");
+processedData.forEach((item, index) => {
+  let message = `${index + 1}. ${item.category} - ${item.formattedValue} (${item.daysSinceCreated} days ago)`
+  message |> console.log;
+});
+
+// Aggregation with pipes
+console.log("\n=== Category Summaries ===");
+
+categories.forEach(category => {
+  let summary = salesData
+    |> filterByCategory(category)
+    |> extractValues
+    |> analyzeData;
+  
+  let output = `${category.toUpperCase()}: ${summary.count} items, Total: ${formatCurrency(summary.total)}, Avg: ${formatCurrency(summary.average)}`
+  output |> console.log;
+});
+
+// Real-time data processing simulation
+console.log("\n=== Real-time Processing Simulation ===");
+
+function processRealTimeData(value: number, category: string) {
+  let newDataPoint = createDataPoint(value, category);
+  let formatted = formatCurrency(newDataPoint.value);
+  let message = `New ${category} sale: ${formatted} (ID: ${newDataPoint.id})`
+  
+  message |> console.log;
+  
+  return newDataPoint;
+}
+
+// Simulate incoming data
+[
+  [850.99, "electronics"],
+  [220.50, "books"],
+  [1340.75, "clothing"]
+].forEach(([value, category]) => {
+  processRealTimeData(value as number, category as string);
+});
+
+console.log("\n📊 Data processing pipeline complete!");

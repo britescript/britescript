@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+bun.lock
+bun.lockb
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+.tmp/
+.temp/
+*.tmp
+*.temp
+
+# Test coverage
+coverage/
+*.lcov
+
+# Examples compiled output
+examples/*.ts
+!examples/react-components.ts
