@@ -9,6 +9,8 @@ const Impl = createToken({ name: "Impl", pattern: /impl/ });
 const For = createToken({ name: "For", pattern: /for/ });
 const Let = createToken({ name: "Let", pattern: /let/ });
 const Return = createToken({ name: "Return", pattern: /return/ });
+const Match = createToken({ name: "Match", pattern: /match/ });
+const When = createToken({ name: "When", pattern: /when/ });
 const LCurly = createToken({ name: "LCurly", pattern: /{/ });
 const RCurly = createToken({ name: "RCurly", pattern: /}/ });
 const LParen = createToken({ name: "LParen", pattern: /\(/ });
@@ -20,11 +22,16 @@ const Colon = createToken({ name: "Colon", pattern: /:/ });
 const Dot = createToken({ name: "Dot", pattern: /\./ });
 const Semicolon = createToken({ name: "Semicolon", pattern: /;/ });
 const Pipe = createToken({ name: "Pipe", pattern: /\|>/ });
+const Arrow = createToken({ name: "Arrow", pattern: /=>/ });
 const Equals = createToken({ name: "Equals", pattern: /=/ });
+const Underscore = createToken({ name: "Underscore", pattern: /_/ });
+const LBracket = createToken({ name: "LBracket", pattern: /\[/ });
+const RBracket = createToken({ name: "RBracket", pattern: /\]/ });
 
 const Identifier = createToken({ name: "Identifier", pattern: /[a-zA-Z_]\w*/ });
 const NumberLiteral = createToken({ name: "NumberLiteral", pattern: /\d+/ });
 const StringLiteral = createToken({ name: "StringLiteral", pattern: /"([^"\\]|\\.)*"/ });
+const AtomLiteral = createToken({ name: "AtomLiteral", pattern: /:[a-zA-Z_]\w*/ });
 
 const WhiteSpace = createToken({
   name: "WhiteSpace",
@@ -40,18 +47,25 @@ const allTokens = [
   For,
   Let,
   Return,
+  Match,
+  When,
   LCurly,
   RCurly,
   LParen,
   RParen,
   LAngle,
   RAngle,
+  LBracket,
+  RBracket,
   Comma,
-  Colon,
   Dot,
   Semicolon,
   Pipe,
+  Arrow,
   Equals,
+  Underscore,
+  AtomLiteral,
+  Colon,
   StringLiteral,
   NumberLiteral,
   Identifier,
@@ -323,6 +337,102 @@ class BritescriptParser extends EmbeddedActionsParser {
     };
   });
 
+  matchExpr = this.RULE("matchExpr", () => {
+    this.CONSUME(Match);
+    const expr = this.SUBRULE(this.expression);
+    this.CONSUME(LCurly);
+    
+    const arms = [];
+    this.AT_LEAST_ONE(() => {
+      arms.push(this.SUBRULE(this.matchArm));
+    });
+    
+    this.CONSUME(RCurly);
+    
+    return {
+      name: "matchExpr",
+      children: {
+        expression: [expr],
+        matchArm: arms,
+      },
+    };
+  });
+
+  matchArm = this.RULE("matchArm", () => {
+    const pattern = this.SUBRULE(this.pattern);
+    
+    // Optional guard clause
+    let guard = null;
+    this.OPTION(() => {
+      this.CONSUME(When);
+      guard = this.SUBRULE(this.expression);
+    });
+    
+    this.CONSUME(Arrow);
+    const body = this.SUBRULE2(this.expression);
+    
+    return {
+      name: "matchArm",
+      children: {
+        pattern: [pattern],
+        guard: guard ? [guard] : [],
+        expression: [body],
+      },
+    };
+  });
+
+  pattern = this.RULE("pattern", () => {
+    return this.OR([
+      { ALT: () => this.CONSUME(Underscore) }, // Wildcard pattern
+      { ALT: () => this.CONSUME(AtomLiteral) }, // Atom pattern
+      { ALT: () => this.CONSUME(StringLiteral) }, // String pattern
+      { ALT: () => this.CONSUME(NumberLiteral) }, // Number pattern
+      { ALT: () => this.CONSUME(Identifier) }, // Variable binding
+      { ALT: () => this.SUBRULE(this.objectPattern) }, // Object destructuring
+    ]);
+  });
+
+  objectPattern = this.RULE("objectPattern", () => {
+    this.CONSUME(LCurly);
+    
+    const fields = [];
+    this.OPTION(() => {
+      fields.push(this.SUBRULE(this.objectPatternField));
+      this.MANY(() => {
+        this.CONSUME(Comma);
+        fields.push(this.SUBRULE2(this.objectPatternField));
+      });
+    });
+    
+    this.CONSUME(RCurly);
+    
+    return {
+      name: "objectPattern",
+      children: {
+        field: fields,
+      },
+    };
+  });
+
+  objectPatternField = this.RULE("objectPatternField", () => {
+    const key = this.CONSUME(Identifier);
+    
+    // Support both { name } and { name: pattern }
+    let pattern = key; // Default to same name
+    this.OPTION(() => {
+      this.CONSUME(Colon);
+      pattern = this.SUBRULE(this.pattern);
+    });
+    
+    return {
+      name: "objectPatternField",
+      children: {
+        key: [key],
+        pattern: [pattern],
+      },
+    };
+  });
+
   pipeExpr = this.RULE("pipeExpr", () => {
     const base = this.SUBRULE(this.expression);
 
@@ -358,6 +468,8 @@ class BritescriptParser extends EmbeddedActionsParser {
 
   expression = this.RULE("expression", () => {
     return this.OR([
+      { ALT: () => this.SUBRULE(this.matchExpr) },
+      { ALT: () => this.CONSUME(AtomLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(Identifier) },

@@ -1,0 +1,2 @@
+let status = :success
+let message = match status { :success => "All good!" :error => "Failed!" _ => "Unknown" }

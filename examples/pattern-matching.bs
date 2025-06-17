@@ -1,0 +1,80 @@
+// Pattern Matching Examples - Advanced Britescript Features
+// Showcasing atoms and pattern matching together
+
+// API Response Handling with Atoms
+let api_status = :success
+let response_message = match api_status {
+  :success => "✅ Operation completed successfully"
+  :error => "❌ Something went wrong"
+  :loading => "⏳ Please wait..."
+  :timeout => "⏰ Request timed out"
+  _ => "❓ Unknown status"
+}
+
+// HTTP Status Code Handling
+let status_code = 404
+let status_message = match status_code {
+  200 => "OK"
+  201 => "Created"
+  400 => "Bad Request"
+  401 => "Unauthorized"
+  404 => "Not Found"
+  500 => "Internal Server Error"
+  _ => "Unknown Status"
+}
+
+// Application State Management
+let app_state = :idle
+let state_description = match app_state {
+  :idle => "Application is ready"
+  :loading => "Loading data..."
+  :error => "An error occurred"
+  :success => "Operation successful"
+  _ => "Unknown state"
+}
+
+// Log Level Processing with Atoms
+let log_level = :debug
+let log_format = match log_level {
+  :error => "🔴 ERROR"
+  :warn => "🟡 WARN"
+  :info => "🔵 INFO"
+  :debug => "🟢 DEBUG"
+  :trace => "⚪ TRACE"
+  _ => "UNKNOWN"
+}
+
+// Variable Binding in Patterns
+let user_age = 25
+let age_category = match user_age {
+  age => "User is years old"
+}
+
+// Configuration Environment with Atoms
+let env = :development
+let config_message = match env {
+  :development => "Dev config loaded"
+  :staging => "Staging config loaded"
+  :production => "Production config loaded"
+  _ => "Default config loaded"
+}
+
+// Event Type Processing
+let event_type = :user_login
+let event_description = match event_type {
+  :user_login => "User signed in"
+  :user_logout => "User signed out"
+  :data_sync => "Data synchronized"
+  :error_occurred => "System error detected"
+  _ => "Unknown event"
+}
+
+// Permission Level Matching
+let permission = :admin
+let access_level = match permission {
+  :admin => "Full access granted"
+  :editor => "Edit access granted"
+  :viewer => "Read-only access"
+  :guest => "Limited access"
+  _ => "Access denied"
+}

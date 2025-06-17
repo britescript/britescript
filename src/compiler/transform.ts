@@ -29,6 +29,8 @@ export function transform(cst: CstNode): ASTNode {
         children.push(transformLet(statementNode));
       } else if (statementNode.name === "pipeExpr") {
         children.push(transformPipe(statementNode));
+      } else if (statementNode.name === "matchExpr") {
+        children.push(transformMatch(statementNode));
       }
     }
   }
@@ -233,9 +235,145 @@ function transformPipe(cst: CstNode): ASTNode {
   };
 }
 
+function transformMatch(cst: CstNode): ASTNode {
+  const expressions = cst.children.expression ?? [];
+  const arms = cst.children.matchArm ?? [];
+  
+  const expr = expressions.length > 0 ? transformExpression(expressions[0]) : null;
+  const matchArms = arms.map((arm: any) => transformMatchArm(arm));
+  
+  return {
+    type: "MatchExpression",
+    children: [expr, ...matchArms].filter(Boolean),
+  };
+}
+
+function transformMatchArm(cst: CstNode): ASTNode {
+  const patterns = cst.children.pattern ?? [];
+  const guards = cst.children.guard ?? [];
+  const expressions = cst.children.expression ?? [];
+  
+  const pattern = patterns.length > 0 ? transformPattern(patterns[0]) : null;
+  const guard = guards.length > 0 ? transformExpression(guards[0]) : null;
+  const expr = expressions.length > 0 ? transformExpression(expressions[0]) : null;
+  
+  return {
+    type: "MatchArm",
+    children: [pattern, guard, expr].filter(Boolean),
+    pattern: pattern,
+    guard: guard,
+    expression: expr,
+  };
+}
+
+function transformPattern(cst: CstElement): ASTNode {
+  // Handle token directly if it's already a token
+  if ("image" in cst && cst.image !== undefined) {
+    if (cst.image === '_') {
+      return {
+        type: "WildcardPattern",
+        value: cst.image,
+      };
+    }
+    if (cst.image.startsWith(':')) {
+      return {
+        type: "AtomPattern",
+        value: cst.image,
+      };
+    }
+    return {
+      type: "VariablePattern",
+      value: cst.image,
+    };
+  }
+
+  // Handle CST node
+  if (isCstNode(cst)) {
+    if (cst.name === "objectPattern") {
+      return transformObjectPattern(cst);
+    }
+    
+    const wildcardToken = cst.children?.Underscore?.[0];
+    if (wildcardToken) {
+      return {
+        type: "WildcardPattern",
+        value: "_",
+      };
+    }
+    
+    const atomToken = cst.children?.AtomLiteral?.[0];
+    if (atomToken && "image" in atomToken) {
+      return {
+        type: "AtomPattern",
+        value: atomToken.image,
+      };
+    }
+
+    const stringToken = cst.children?.StringLiteral?.[0];
+    if (stringToken && "image" in stringToken) {
+      return {
+        type: "LiteralPattern",
+        value: stringToken.image,
+      };
+    }
+
+    const numberToken = cst.children?.NumberLiteral?.[0];
+    if (numberToken && "image" in numberToken) {
+      return {
+        type: "LiteralPattern",
+        value: numberToken.image,
+      };
+    }
+
+    const identifierToken = cst.children?.Identifier?.[0];
+    if (identifierToken && "image" in identifierToken) {
+      return {
+        type: "VariablePattern",
+        value: identifierToken.image,
+      };
+    }
+  }
+
+  return {
+    type: "VariablePattern",
+    value: undefined,
+  };
+}
+
+function transformObjectPattern(cst: CstNode): ASTNode {
+  const fields = cst.children.field ?? [];
+  const fieldNodes = fields.map((field: any) => transformObjectPatternField(field));
+  
+  return {
+    type: "ObjectPattern",
+    children: fieldNodes,
+  };
+}
+
+function transformObjectPatternField(cst: CstNode): ASTNode {
+  const keys = cst.children.key ?? [];
+  const patterns = cst.children.pattern ?? [];
+  
+  const key = keys.length > 0 && "image" in keys[0] ? keys[0].image : "";
+  const pattern = patterns.length > 0 ? transformPattern(patterns[0]) : null;
+  
+  return {
+    type: "ObjectPatternField",
+    value: { key, pattern },
+    children: pattern ? [pattern] : [],
+  };
+}
+
 function transformExpression(cst: CstElement): ASTNode {
   // Handle token directly if it's already a token
   if ("image" in cst && cst.image !== undefined) {
+    // Check if it's an atom literal
+    if (cst.image.startsWith(':')) {
+      return {
+        type: "AtomExpression",
+        value: cst.image,
+      };
+    }
     return {
       type: "Expression",
       value: cst.image,
@@ -244,6 +382,19 @@ function transformExpression(cst: CstElement): ASTNode {
 
   // Handle CST node
   if (isCstNode(cst)) {
+    // Handle match expressions
+    if (cst.name === "matchExpr") {
+      return transformMatch(cst);
+    }
+    
+    const atomToken = cst.children?.AtomLiteral?.[0];
+    if (atomToken && "image" in atomToken) {
+      return {
+        type: "AtomExpression",
+        value: atomToken.image,
+      };
+    }
+
     const token =
       cst.children?.StringLiteral?.[0] ??
       cst.children?.NumberLiteral?.[0] ??

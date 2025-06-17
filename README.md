@@ -160,6 +160,119 @@ const UserDisplay = {
 };
 ```
 
+## Atoms
+
+Use Elixir-style atoms for immutable constants:
+
+**Britescript:**
+```javascript
+let status = :ok
+let error_type = :network_error
+let state = :running
+```
+
+**Generated TypeScript:**
+```typescript
+const status = Symbol.for("ok");
+const error_type = Symbol.for("network_error");
+const state = Symbol.for("running");
+```
+
+Atoms are perfect for status values, configuration keys, and constants:
+
+```javascript
+// Status handling with atoms
+function handleApiResponse(status: symbol) {
+  switch (status) {
+    case Symbol.for("success"):
+      return "Operation completed";
+    case Symbol.for("error"):
+      return "Something went wrong";
+    case Symbol.for("pending"):
+      return "Processing...";
+    default:
+      return "Unknown status";
+  }
+}
+
+// Usage
+let result = :success;
+console.log(handleApiResponse(result)); // "Operation completed"
+```
+
+## Pattern Matching
+
+Powerful pattern matching inspired by Rust and Elixir:
+
+**Britescript:**
+```javascript
+let result = match status {
+  :ok => "Success!"
+  :error => "Failed!"
+  :pending => "Working..."
+  _ => "Unknown status"
+}
+
+// With literals
+let message = match code {
+  200 => "OK"
+  404 => "Not Found"
+  500 => "Server Error"
+  _ => "Unknown Code"
+}
+
+// Variable binding
+let doubled = match value {
+  x => x * 2
+}
+```
+
+**Generated TypeScript:**
+```typescript
+const result = (() => {
+  const __match_value = status;
+  if (__match_value === Symbol.for("ok")) {
+    return "Success!";
+  } else if (__match_value === Symbol.for("error")) {
+    return "Failed!";
+  } else if (__match_value === Symbol.for("pending")) {
+    return "Working...";
+  } else {
+    return "Unknown status";
+  }
+  throw new Error("Non-exhaustive match");
+})();
+
+const message = (() => {
+  const __match_value = code;
+  if (__match_value === 200) {
+    return "OK";
+  } else if (__match_value === 404) {
+    return "Not Found";
+  } else if (__match_value === 500) {
+    return "Server Error";
+  } else {
+    return "Unknown Code";
+  }
+  throw new Error("Non-exhaustive match");
+})();
+
+const doubled = (() => {
+  const __match_value = value;
+  if (true) {
+    return __match_value * 2;
+  }
+  throw new Error("Non-exhaustive match");
+})();
+```
+
+Pattern matching supports:
+- **Atom patterns**: `:ok`, `:error`, `:pending`
+- **Literal patterns**: Numbers, strings, booleans
+- **Variable binding**: Capture values with identifiers
+- **Wildcard patterns**: `_` matches anything
+- **Exhaustiveness checking**: Throws error for non-exhaustive matches
+
 ## Pipe Expressions
 
 Chain function calls with the pipe operator:

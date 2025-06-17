@@ -24,6 +24,19 @@ function emitNode(node: ASTNode): string {
       return emitPipe(node);
     case "Expression":
       return emitExpression(node);
+    case "AtomExpression":
+      return emitAtom(node);
+    case "MatchExpression":
+      return emitMatch(node);
+    case "MatchArm":
+      return emitMatchArm(node);
+    case "AtomPattern":
+    case "LiteralPattern":
+    case "VariablePattern":
+    case "WildcardPattern":
+    case "ObjectPattern":
+    case "ObjectPatternField":
+      return emitPattern(node);
     case "PipeCall":
       return node.value;
     case "Field":
@@ -191,6 +204,120 @@ function emitPipe(node: ASTNode): string {
     const jsFunction = functionMap[methodName] || methodName;
     return `${jsFunction}(${acc})`;
   }, emitNode(base));
+}
+
+function emitAtom(node: ASTNode): string {
+  // Convert :example to Symbol.for("example")
+  const atomName = node.value.slice(1); // Remove the ':' prefix
+  return `Symbol.for("${atomName}")`;
+}
+
+function emitMatch(node: ASTNode): string {
+  const children = node.children ?? [];
+  if (children.length === 0) return "null";
+  
+  const expr = children[0];
+  const arms = children.slice(1);
+  
+  const matchVar = "__match_value";
+  const exprCode = emitNode(expr);
+  
+  // Generate an IIFE that returns the match result
+  let code = `(() => {\n  const ${matchVar} = ${exprCode};\n`;
+  
+  for (let i = 0; i < arms.length; i++) {
+    const arm = arms[i];
+    const condition = generateMatchCondition(matchVar, arm);
+    const body = emitNode(arm.expression);
+    
+    if (i === 0) {
+      code += `  if (${condition}) {\n    return ${body};\n  }`;
+    } else if (arm.pattern?.type === "WildcardPattern") {
+      // Wildcard is always last and acts as default
+      code += ` else {\n    return ${body};\n  }`;
+    } else {
+      code += ` else if (${condition}) {\n    return ${body};\n  }`;
+    }
+  }
+  
+  code += '\n  throw new Error("Non-exhaustive match");\n})()';
+  
+  return code;
+}
+
+function generateMatchCondition(matchVar: string, arm: any): string {
+  const pattern = arm.pattern;
+  const guard = arm.guard;
+  
+  let condition = generatePatternCondition(matchVar, pattern);
+  
+  if (guard) {
+    const guardCode = emitNode(guard);
+    condition += ` && (${guardCode})`;
+  }
+  
+  return condition;
+}
+
+function generatePatternCondition(matchVar: string, pattern: any): string {
+  if (!pattern) return "true";
+  
+  switch (pattern.type) {
+    case "WildcardPattern":
+      return "true";
+    
+    case "AtomPattern":
+      const atomName = pattern.value.slice(1); // Remove ':' prefix
+      return `${matchVar} === Symbol.for("${atomName}")`;
+    
+    case "LiteralPattern":
+      return `${matchVar} === ${pattern.value}`;
+    
+    case "VariablePattern":
+      // Variables always match, we'll need to bind them in the body
+      return "true";
+    
+    case "ObjectPattern":
+      return generateObjectPatternCondition(matchVar, pattern);
+    
+    default:
+      return "true";
+  }
+}
+
+function generateObjectPatternCondition(matchVar: string, pattern: any): string {
+  const fields = pattern.children ?? [];
+  const conditions: string[] = [];
+  
+  // Check that it's an object
+  conditions.push(`typeof ${matchVar} === 'object' && ${matchVar} !== null`);
+  
+  for (const field of fields) {
+    if (field.value?.key) {
+      const key = field.value.key;
+      const fieldPattern = field.value.pattern;
+      
+      if (fieldPattern && fieldPattern.type !== "VariablePattern") {
+        const fieldCondition = generatePatternCondition(`${matchVar}.${key}`, fieldPattern);
+        conditions.push(fieldCondition);
+      } else {
+        // Just check that the field exists
+        conditions.push(`'${key}' in ${matchVar}`);
+      }
+    }
+  }
+  
+  return conditions.join(' && ');
+}
+
+function emitMatchArm(node: ASTNode): string {
+  // This shouldn't be called directly, arms are handled in emitMatch
+  return "// match arm";
+}
+
+function emitPattern(node: ASTNode): string {
+  // This shouldn't be called directly, patterns are handled in match conditions
+  return "// pattern";
 }
 
 function emitExpression(node: ASTNode): string {

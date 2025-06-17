@@ -1,0 +1,83 @@
+// Atoms Example - Demonstrating Elixir-style atoms in Britescript
+// Atoms are immutable constants that evaluate to themselves
+
+// Basic atom usage
+let status = :ok;
+let error = :error;
+let running = :running;
+let stopped = :stopped;
+
+// Atoms are commonly used for status values and constants
+struct ApiResponse {
+  status: symbol;
+  data: any;
+}
+
+impl ApiResponse {
+  success(data: any) {
+    return {
+      status: :success,
+      data: data
+    };
+  }
+  
+  error(message: string) {
+    return {
+      status: :error,
+      data: message
+    };
+  }
+}
+
+// Example usage
+const response1 = ApiResponse.success("User created");
+const response2 = ApiResponse.error("Validation failed");
+
+console.log("Response 1 status:", response1.status);
+console.log("Response 2 status:", response2.status);
+
+// Atoms are great for pattern matching-like structures
+function handleStatus(status: symbol): string {
+  switch (status) {
+    case Symbol.for("ok"):
+      return "Everything is fine";
+    case Symbol.for("error"):
+      return "Something went wrong";
+    case Symbol.for("pending"):
+      return "Operation in progress";
+    default:
+      return "Unknown status";
+  }
+}
+
+// Test the status handler
+console.log(handleStatus(:ok));
+console.log(handleStatus(:error));
+console.log(handleStatus(:pending));
+
+// Atoms as configuration keys
+struct Config {
+  env: symbol;
+  debug: boolean;
+  port: number;
+}
+
+let config = {
+  env: :production,
+  debug: false,
+  port: 3000
+};
+
+// Atoms for event types
+let events = [
+  :user_login,
+  :user_logout,
+  :data_sync,
+  :error_occurred
+];
+
+console.log("Events:", events);
+
+// Comparison of atoms
+console.log(":ok === :ok:", :ok === :ok);  // Should be true (same symbol)
+console.log(":ok === :error:", :ok === :error);  // Should be false
