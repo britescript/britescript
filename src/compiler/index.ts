@@ -1,7 +1,7 @@
 import { emit } from "./emitter";
 import { parse } from "./parser";
-import { transform } from "./transform";
 import { preprocessCode } from "./preprocessor";
+import { transform } from "./transform";
 
 /**
  * Compiles Britescript source code into TypeScript.
@@ -30,5 +30,5 @@ export function compile(source: string): string {
     }
   }
 
-  return compiledBlocks.join('\n\n');
+  return compiledBlocks.join("\n\n");
 }

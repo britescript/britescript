@@ -45,12 +45,12 @@ function transformStruct(cst: CstNode): ASTNode {
   const identifiers = cst.children.Identifier ?? [];
   const genericsArray = cst.children.generics ?? [];
   const fieldTokens = cst.children.fields ?? [];
-  
+
   // First identifier is the struct name
   const [nameToken] = identifiers;
-  
+
   // Extract generics from the generics array, not from identifiers
-  const generics = genericsArray.map((g: any) => g && "image" in g ? g.image : "");
+  const generics = genericsArray.map((g: any) => (g && "image" in g ? g.image : ""));
 
   const fields: ASTNode[] = [];
   for (let i = 0; i < fieldTokens.length; i += 2) {
@@ -79,12 +79,12 @@ function transformImpl(cst: CstNode): ASTNode {
   const identifiers = cst.children.Identifier ?? [];
   const genericsArray = cst.children.generics ?? [];
   const methods = cst.children.methodDecl ?? [];
-  
+
   // First identifier is the type name
   const [typeNameToken] = identifiers;
-  
+
   // Extract generics from the generics array
-  const generics = genericsArray.map((g: any) => g && "image" in g ? g.image : "");
+  const generics = genericsArray.map((g: any) => (g && "image" in g ? g.image : ""));
 
   const methodNodes = methods.map((method: any) => transformMethod(method));
 
@@ -100,9 +100,9 @@ function transformTrait(cst: CstNode): ASTNode {
   const identifiers = cst.children.Identifier ?? [];
   const genericsArray = cst.children.generics ?? [];
   const methods = cst.children.traitMethodDecl ?? [];
-  
+
   const [nameToken] = identifiers;
-  const generics = genericsArray.map((g: any) => g && "image" in g ? g.image : "");
+  const generics = genericsArray.map((g: any) => (g && "image" in g ? g.image : ""));
   const methodNodes = methods.map((method: any) => transformTraitMethod(method));
 
   return {
@@ -116,11 +116,11 @@ function transformTrait(cst: CstNode): ASTNode {
 function transformTraitMethod(cst: CstNode): ASTNode {
   const identifiers = cst.children.Identifier ?? [];
   const [nameToken, ...tokens] = identifiers;
-  
+
   // Parse parameters (pairs of name:type) and return type (last token)
   const paramTokens = tokens.slice(0, -1);
   const returnTypeToken = tokens[tokens.length - 1];
-  
+
   const params: ASTNode[] = [];
   for (let i = 0; i < paramTokens.length; i += 2) {
     const paramName = paramTokens[i];
@@ -147,10 +147,10 @@ function transformTraitImpl(cst: CstNode): ASTNode {
   const typeNames = cst.children.typeName ?? [];
   const genericsArray = cst.children.generics ?? [];
   const methods = cst.children.methodDecl ?? [];
-  
+
   const [traitNameToken] = traitNames;
   const [typeNameToken] = typeNames;
-  const generics = genericsArray.map((g: any) => g && "image" in g ? g.image : "");
+  const generics = genericsArray.map((g: any) => (g && "image" in g ? g.image : ""));
   const methodNodes = methods.map((method: any) => transformMethod(method));
 
   return {
@@ -183,9 +183,9 @@ function transformMethod(cst: CstNode): ASTNode {
   }
 
   // Transform body tokens into a simple body representation
-  const body = bodyTokens.map((token: any) => 
-    token && "image" in token ? token.image : ""
-  ).join(" ");
+  const body = bodyTokens
+    .map((token: any) => (token && "image" in token ? token.image : ""))
+    .join(" ");
 
   return {
     type: "Method",
@@ -214,10 +214,10 @@ function transformPipe(cst: CstNode): ASTNode {
   const pipeCalls = memberExpressions.map((memberExpr: any) => {
     if (isCstNode(memberExpr)) {
       const identifiers = memberExpr.children.Identifier ?? [];
-      const memberPath = identifiers.map((id: any) => 
-        id && "image" in id ? id.image : ""
-      ).join(".");
-      
+      const memberPath = identifiers
+        .map((id: any) => (id && "image" in id ? id.image : ""))
+        .join(".");
+
       return {
         type: "PipeCall",
         value: memberPath,
@@ -238,10 +238,10 @@ function transformPipe(cst: CstNode): ASTNode {
 function transformMatch(cst: CstNode): ASTNode {
   const expressions = cst.children.expression ?? [];
   const arms = cst.children.matchArm ?? [];
-  
+
   const expr = expressions.length > 0 ? transformExpression(expressions[0]) : null;
   const matchArms = arms.map((arm: any) => transformMatchArm(arm));
-  
+
   return {
     type: "MatchExpression",
     children: [expr, ...matchArms].filter(Boolean),
@@ -252,11 +252,11 @@ function transformMatchArm(cst: CstNode): ASTNode {
   const patterns = cst.children.pattern ?? [];
   const guards = cst.children.guard ?? [];
   const expressions = cst.children.expression ?? [];
-  
+
   const pattern = patterns.length > 0 ? transformPattern(patterns[0]) : null;
   const guard = guards.length > 0 ? transformExpression(guards[0]) : null;
   const expr = expressions.length > 0 ? transformExpression(expressions[0]) : null;
-  
+
   return {
     type: "MatchArm",
     children: [pattern, guard, expr].filter(Boolean),
@@ -269,13 +269,13 @@ function transformMatchArm(cst: CstNode): ASTNode {
 function transformPattern(cst: CstElement): ASTNode {
   // Handle token directly if it's already a token
   if ("image" in cst && cst.image !== undefined) {
-    if (cst.image === '_') {
+    if (cst.image === "_") {
       return {
         type: "WildcardPattern",
         value: cst.image,
       };
     }
-    if (cst.image.startsWith(':')) {
+    if (cst.image.startsWith(":")) {
       return {
         type: "AtomPattern",
         value: cst.image,
@@ -292,7 +292,7 @@ function transformPattern(cst: CstElement): ASTNode {
     if (cst.name === "objectPattern") {
       return transformObjectPattern(cst);
     }
-    
+
     const wildcardToken = cst.children?.Underscore?.[0];
     if (wildcardToken) {
       return {
@@ -300,7 +300,7 @@ function transformPattern(cst: CstElement): ASTNode {
         value: "_",
       };
     }
-    
+
     const atomToken = cst.children?.AtomLiteral?.[0];
     if (atomToken && "image" in atomToken) {
       return {
@@ -343,7 +343,7 @@ function transformPattern(cst: CstElement): ASTNode {
 function transformObjectPattern(cst: CstNode): ASTNode {
   const fields = cst.children.field ?? [];
   const fieldNodes = fields.map((field: any) => transformObjectPatternField(field));
-  
+
   return {
     type: "ObjectPattern",
     children: fieldNodes,
@@ -353,10 +353,10 @@ function transformObjectPattern(cst: CstNode): ASTNode {
 function transformObjectPatternField(cst: CstNode): ASTNode {
   const keys = cst.children.key ?? [];
   const patterns = cst.children.pattern ?? [];
-  
+
   const key = keys.length > 0 && "image" in keys[0] ? keys[0].image : "";
   const pattern = patterns.length > 0 ? transformPattern(patterns[0]) : null;
-  
+
   return {
     type: "ObjectPatternField",
     value: { key, pattern },
@@ -368,7 +368,7 @@ function transformExpression(cst: CstElement): ASTNode {
   // Handle token directly if it's already a token
   if ("image" in cst && cst.image !== undefined) {
     // Check if it's an atom literal
-    if (cst.image.startsWith(':')) {
+    if (cst.image.startsWith(":")) {
       return {
         type: "AtomExpression",
         value: cst.image,
@@ -386,7 +386,7 @@ function transformExpression(cst: CstElement): ASTNode {
     if (cst.name === "matchExpr") {
       return transformMatch(cst);
     }
-    
+
     const atomToken = cst.children?.AtomLiteral?.[0];
     if (atomToken && "image" in atomToken) {
       return {

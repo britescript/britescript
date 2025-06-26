@@ -103,7 +103,7 @@ class BritescriptParser extends EmbeddedActionsParser {
   structDecl = this.RULE("structDecl", () => {
     this.CONSUME(Struct);
     const name = this.CONSUME(Identifier);
-    
+
     // Optional generic parameters
     const generics: any[] = [];
     this.OPTION(() => {
@@ -122,31 +122,33 @@ class BritescriptParser extends EmbeddedActionsParser {
       // Simple struct declaration: struct User;
       { ALT: () => this.CONSUME(Semicolon) },
       // Full struct body: struct User { ... } or struct User { ... };
-      { ALT: () => {
-        this.CONSUME(LCurly);
-        this.MANY2(() => {
-          fields.push(this.CONSUME4(Identifier));
-          this.CONSUME(Colon);
-          fields.push(this.CONSUME5(Identifier));
-          // Optional semicolon after each field
-          this.OPTION3(() => {
-            this.CONSUME3(Semicolon);
+      {
+        ALT: () => {
+          this.CONSUME(LCurly);
+          this.MANY2(() => {
+            fields.push(this.CONSUME4(Identifier));
+            this.CONSUME(Colon);
+            fields.push(this.CONSUME5(Identifier));
+            // Optional semicolon after each field
+            this.OPTION3(() => {
+              this.CONSUME3(Semicolon);
+            });
           });
-        });
-        this.CONSUME(RCurly);
-        // Optional semicolon after struct body
-        this.OPTION2(() => {
-          this.CONSUME2(Semicolon);
-        });
-      }}
+          this.CONSUME(RCurly);
+          // Optional semicolon after struct body
+          this.OPTION2(() => {
+            this.CONSUME2(Semicolon);
+          });
+        },
+      },
     ]);
 
     return {
       name: "structDecl",
-      children: { 
+      children: {
         Identifier: [name],
         generics: generics,
-        fields: fields
+        fields: fields,
       },
     };
   });
@@ -154,7 +156,7 @@ class BritescriptParser extends EmbeddedActionsParser {
   traitDecl = this.RULE("traitDecl", () => {
     this.CONSUME(Trait);
     const name = this.CONSUME(Identifier);
-    
+
     // Optional generic parameters
     const generics: any[] = [];
     this.OPTION(() => {
@@ -178,10 +180,10 @@ class BritescriptParser extends EmbeddedActionsParser {
 
     return {
       name: "traitDecl",
-      children: { 
+      children: {
         Identifier: [name],
         generics: generics,
-        traitMethodDecl: methods
+        traitMethodDecl: methods,
       },
     };
   });
@@ -189,7 +191,7 @@ class BritescriptParser extends EmbeddedActionsParser {
   traitMethodDecl = this.RULE("traitMethodDecl", () => {
     const name = this.CONSUME(Identifier);
     this.CONSUME(LParen);
-    
+
     const params: any[] = [];
     this.OPTION(() => {
       params.push(this.CONSUME2(Identifier));
@@ -202,7 +204,7 @@ class BritescriptParser extends EmbeddedActionsParser {
         params.push(this.CONSUME5(Identifier));
       });
     });
-    
+
     this.CONSUME(RParen);
     this.CONSUME3(Colon);
     const returnType = this.CONSUME6(Identifier);
@@ -210,15 +212,15 @@ class BritescriptParser extends EmbeddedActionsParser {
 
     return {
       name: "traitMethodDecl",
-      children: { 
-        Identifier: [name, ...params, returnType] 
+      children: {
+        Identifier: [name, ...params, returnType],
       },
     };
   });
 
   implBlock = this.RULE("implBlock", () => {
     this.CONSUME(Impl);
-    
+
     // Optional generic parameters
     const generics: any[] = [];
     this.OPTION(() => {
@@ -235,7 +237,7 @@ class BritescriptParser extends EmbeddedActionsParser {
     const firstId = this.CONSUME3(Identifier);
     let traitName = null;
     let typeName = firstId;
-    
+
     this.OPTION2(() => {
       this.CONSUME(For);
       traitName = firstId;
@@ -258,25 +260,24 @@ class BritescriptParser extends EmbeddedActionsParser {
           traitName: [traitName],
           typeName: [typeName],
           methodDecl: methods,
-          generics: generics
-        },
-      };
-    } else {
-      return {
-        name: "implBlock",
-        children: {
-          Identifier: [typeName, ...generics],
-          methodDecl: methods,
-          generics: generics
+          generics: generics,
         },
       };
     }
+    return {
+      name: "implBlock",
+      children: {
+        Identifier: [typeName, ...generics],
+        methodDecl: methods,
+        generics: generics,
+      },
+    };
   });
 
   methodDecl = this.RULE("methodDecl", () => {
     const name = this.CONSUME(Identifier);
     this.CONSUME(LParen);
-    
+
     const params: any[] = [];
     this.OPTION(() => {
       params.push(this.CONSUME2(Identifier));
@@ -289,10 +290,10 @@ class BritescriptParser extends EmbeddedActionsParser {
         params.push(this.CONSUME5(Identifier));
       });
     });
-    
+
     this.CONSUME(RParen);
     this.CONSUME(LCurly);
-    
+
     // For now, consume all tokens until we find the closing brace
     // This is a simplified approach - in a full implementation we'd parse statements
     const bodyTokens: any[] = [];
@@ -310,14 +311,14 @@ class BritescriptParser extends EmbeddedActionsParser {
       ]);
       bodyTokens.push(token);
     });
-    
+
     this.CONSUME(RCurly);
 
     return {
       name: "methodDecl",
-      children: { 
+      children: {
         Identifier: [name, ...params],
-        body: bodyTokens
+        body: bodyTokens,
       },
     };
   });
@@ -341,14 +342,14 @@ class BritescriptParser extends EmbeddedActionsParser {
     this.CONSUME(Match);
     const expr = this.SUBRULE(this.expression);
     this.CONSUME(LCurly);
-    
+
     const arms = [];
     this.AT_LEAST_ONE(() => {
       arms.push(this.SUBRULE(this.matchArm));
     });
-    
+
     this.CONSUME(RCurly);
-    
+
     return {
       name: "matchExpr",
       children: {
@@ -360,17 +361,17 @@ class BritescriptParser extends EmbeddedActionsParser {
 
   matchArm = this.RULE("matchArm", () => {
     const pattern = this.SUBRULE(this.pattern);
-    
+
     // Optional guard clause
     let guard = null;
     this.OPTION(() => {
       this.CONSUME(When);
       guard = this.SUBRULE(this.expression);
     });
-    
+
     this.CONSUME(Arrow);
     const body = this.SUBRULE2(this.expression);
-    
+
     return {
       name: "matchArm",
       children: {
@@ -394,7 +395,7 @@ class BritescriptParser extends EmbeddedActionsParser {
 
   objectPattern = this.RULE("objectPattern", () => {
     this.CONSUME(LCurly);
-    
+
     const fields = [];
     this.OPTION(() => {
       fields.push(this.SUBRULE(this.objectPatternField));
@@ -403,9 +404,9 @@ class BritescriptParser extends EmbeddedActionsParser {
         fields.push(this.SUBRULE2(this.objectPatternField));
       });
     });
-    
+
     this.CONSUME(RCurly);
-    
+
     return {
       name: "objectPattern",
       children: {
@@ -416,14 +417,14 @@ class BritescriptParser extends EmbeddedActionsParser {
 
   objectPatternField = this.RULE("objectPatternField", () => {
     const key = this.CONSUME(Identifier);
-    
+
     // Support both { name } and { name: pattern }
     let pattern = key; // Default to same name
     this.OPTION(() => {
       this.CONSUME(Colon);
       pattern = this.SUBRULE(this.pattern);
     });
-    
+
     return {
       name: "objectPatternField",
       children: {
@@ -454,7 +455,7 @@ class BritescriptParser extends EmbeddedActionsParser {
   memberExpression = this.RULE("memberExpression", () => {
     const parts = [];
     parts.push(this.CONSUME(Identifier));
-    
+
     this.MANY(() => {
       this.CONSUME(Dot);
       parts.push(this.CONSUME2(Identifier));

@@ -8,13 +8,15 @@ setupGlobalBritescript();
 
 // Register the plugin for builds (when available)
 try {
-  const { britescriptPlugin } = await import("./plugin");
-  
+  // Import the plugin module
+  await import("./plugin");
+
   // Note: Bun's plugin registration via bunfig.toml is experimental
   // For now, plugins need to be explicitly used in build scripts
   console.log("🔧 Britescript plugin available for build scripts");
-  console.log("   Use: Bun.build({ plugins: [britescriptPlugin] })");
-} catch (error) {
+  console.log("   Use: import { britescriptPlugin } from './plugin'");
+  console.log("   Then: Bun.build({ plugins: [britescriptPlugin] })");
+} catch (_error) {
   console.log("⚠️  Plugin registration not available in this context");
 }
 

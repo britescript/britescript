@@ -11,7 +11,7 @@ export interface CodeBlock {
  * Uses a more sophisticated approach to handle multi-line constructs
  */
 export function preprocessCode(source: string): CodeBlock[] {
-  const lines = source.split('\n');
+  const lines = source.split("\n");
   const blocks: CodeBlock[] = [];
   let currentBlock: CodeBlock | null = null;
   let braceLevel = 0;
@@ -23,7 +23,7 @@ export function preprocessCode(source: string): CodeBlock[] {
     const lineNumber = i + 1;
 
     // Skip comments and empty lines
-    if (!trimmedLine || trimmedLine.startsWith('//')) {
+    if (!trimmedLine || trimmedLine.startsWith("//")) {
       continue;
     }
 
@@ -33,11 +33,11 @@ export function preprocessCode(source: string): CodeBlock[] {
     braceLevel += openBraces - closeBraces;
 
     // Determine if this line starts a Britescript construct
-    const startsStruct = trimmedLine.startsWith('struct ');
-    const startsTrait = trimmedLine.startsWith('trait ');
-    const startsImpl = trimmedLine.startsWith('impl ');
-    const startsLet = trimmedLine.startsWith('let ');
-    const hasPipe = trimmedLine.includes('|>');
+    const startsStruct = trimmedLine.startsWith("struct ");
+    const startsTrait = trimmedLine.startsWith("trait ");
+    const startsImpl = trimmedLine.startsWith("impl ");
+    const startsLet = trimmedLine.startsWith("let ");
+    const hasPipe = trimmedLine.includes("|>");
 
     // Determine block type
     let blockType: "britescript" | "javascript";
@@ -56,17 +56,17 @@ export function preprocessCode(source: string): CodeBlock[] {
 
     // Start new block if type changes or no current block
     if (!currentBlock || currentBlock.type !== blockType) {
-      if (currentBlock && currentBlock.content.trim()) {
+      if (currentBlock?.content.trim()) {
         blocks.push(currentBlock);
       }
       currentBlock = {
         type: blockType,
-        content: line + '\n',
-        line: lineNumber
+        content: `${line}\n`,
+        line: lineNumber,
       };
     } else {
       // Continue current block
-      currentBlock.content += line + '\n';
+      currentBlock.content += `${line}\n`;
     }
 
     // End struct definition when braces close
@@ -76,7 +76,7 @@ export function preprocessCode(source: string): CodeBlock[] {
   }
 
   // Add final block
-  if (currentBlock && currentBlock.content.trim()) {
+  if (currentBlock?.content.trim()) {
     blocks.push(currentBlock);
   }
 

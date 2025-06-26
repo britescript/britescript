@@ -19,6 +19,8 @@ export function setupGlobalBritescript(): void {
  * Check if global Britescript helpers are already registered
  */
 export function isGlobalBritescriptSetup(): boolean {
-  return typeof (globalThis as any).importBs === "function" &&
-         typeof (globalThis as any).runBs === "function";
+  return (
+    typeof (globalThis as any).importBs === "function" &&
+    typeof (globalThis as any).runBs === "function"
+  );
 }

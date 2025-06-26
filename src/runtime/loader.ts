@@ -1,6 +1,6 @@
 // Dynamic loading utilities for Britescript files
 
-import { compileToTemp, cleanupTemp } from "./compiler";
+import { cleanupTemp, compileToTemp } from "./compiler";
 
 /**
  * Dynamically import a .bs file by compiling it to a temporary .ts file

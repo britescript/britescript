@@ -58,12 +58,12 @@ function emitStruct(node: ASTNode): string {
   const fields = (node.children ?? []).map(emitNode).join("\n");
 
   const genericParams = generics.length > 0 ? `<${generics.join(", ")}>` : "";
-  
+
   // Handle simple struct declarations (no fields)
   if (fields.trim() === "") {
     return `type ${structName}${genericParams} = {};`;
   }
-  
+
   return `type ${structName}${genericParams} = {\n${fields}\n}`;
 }
 
@@ -73,7 +73,7 @@ function emitImpl(node: ASTNode): string {
   const methods = (node.children ?? []).map(emitNode).join("\n\n");
 
   const genericParams = generics.length > 0 ? `<${generics.join(", ")}>` : "";
-  
+
   // Generate TypeScript class with methods
   return `class ${typeName}Impl${genericParams} {\n${methods}\n}`;
 }
@@ -84,7 +84,7 @@ function emitTrait(node: ASTNode): string {
   const methods = (node.children ?? []).map(emitNode).join("\n");
 
   const genericParams = generics.length > 0 ? `<${generics.join(", ")}>` : "";
-  
+
   return `interface ${traitName}${genericParams} {\n${methods}\n}`;
 }
 
@@ -92,40 +92,44 @@ function emitTraitMethod(node: ASTNode): string {
   const methodName = node.value;
   const params = (node.children ?? []).map(emitNode).join(", ");
   const returnType = (node as any).returnType || "void";
-  
+
   return `  ${methodName}(${params}): ${returnType};`;
 }
 
 function emitTraitImpl(node: ASTNode): string {
   const { traitName, typeName } = node.value;
   const generics = (node as any).generics ?? [];
-  const methods = (node.children ?? []).map(method => emitFunctionalTraitImplMethod(method, typeName, generics)).join(",\n");
+  const methods = (node.children ?? [])
+    .map((method) => emitFunctionalTraitImplMethod(method, typeName, generics))
+    .join(",\n");
 
-  const genericParams = generics.length > 0 ? `<${generics.join(", ")}>` : "";
-  
+  const _genericParams = generics.length > 0 ? `<${generics.join(", ")}>` : "";
+
   // Generate functional implementation object
   const implObject = `const ${typeName}${traitName} = {\n${methods}\n};`;
-  
+
   return implObject;
 }
 
 function emitMethod(node: ASTNode): string {
   const methodName = node.value;
   const params = (node.children ?? []).map(emitNode).join(", ");
-  
+
   // Generate method stub - in a real implementation you'd want method bodies
   return `  ${methodName}(${params}): void {\n    // TODO: Implement method\n  }`;
 }
 
-function emitTraitImplMethod(node: ASTNode): string {
+// This function is kept for future implementation but currently not used
+// @ts-ignore - Intentionally unused for now
+function _emitTraitImplMethod(node: ASTNode): string {
   const methodName = node.value;
   const params = (node.children ?? []).map(emitNode).join(", ");
   const body = (node as any).body || "";
-  
+
   // For now, assume string return type if there's a return statement with a string
   let returnType = "void";
   let methodBody = "// TODO: Implement method";
-  
+
   if (body.includes("return")) {
     if (body.includes('"')) {
       returnType = "string";
@@ -136,30 +140,34 @@ function emitTraitImplMethod(node: ASTNode): string {
       }
     }
   }
-  
+
   return `  ${methodName}(${params}): ${returnType} {\n    ${methodBody}\n  }`;
 }
 
-function emitFunctionalTraitImplMethod(node: ASTNode, typeName: string, generics: string[]): string {
+function emitFunctionalTraitImplMethod(
+  node: ASTNode,
+  typeName: string,
+  generics: string[],
+): string {
   const methodName = node.value;
   const params = (node.children ?? []).map(emitNode).join(", ");
   const body = (node as any).body || "";
-  
+
   const genericParams = generics.length > 0 ? `<${generics.join(", ")}>` : "";
   const typeParam = `obj: ${typeName}${genericParams}`;
   const fullParams = params ? `${typeParam}, ${params}` : typeParam;
-  
+
   // For now, assume string return type if there's a return statement with a string
   let returnType = "void";
   let methodBody = "// TODO: Implement method";
-  
+
   if (body.includes("return")) {
     returnType = "string"; // Assume string return if there's any return
     // For now, use a simple placeholder since the parser is stripping quotes
     // This would need more sophisticated parsing in a real implementation
     methodBody = `return "Hello " + obj.name;`;
   }
-  
+
   return `  ${methodName}: (${fullParams}): ${returnType} => {\n    ${methodBody}\n  }`;
 }
 
@@ -189,17 +197,17 @@ function emitPipe(node: ASTNode): string {
 
   return funcs.reduce((acc, fn) => {
     const methodName = fn.value;
-    
+
     // If it contains a dot, it's already a member expression (like console.log)
     if (methodName.includes(".")) {
       return `${methodName}(${acc})`;
     }
-    
+
     // Handle string methods
     if (stringMethods.has(methodName)) {
       return `${acc}.${methodName}()`;
     }
-    
+
     // Handle mapped functions
     const jsFunction = functionMap[methodName] || methodName;
     return `${jsFunction}(${acc})`;
@@ -214,22 +222,24 @@ function emitAtom(node: ASTNode): string {
 
 function emitMatch(node: ASTNode): string {
   const children = node.children ?? [];
-  if (children.length === 0) return "null";
-  
+  if (children.length === 0) {
+    return "null";
+  }
+
   const expr = children[0];
   const arms = children.slice(1);
-  
+
   const matchVar = "__match_value";
   const exprCode = emitNode(expr);
-  
+
   // Generate an IIFE that returns the match result
   let code = `(() => {\n  const ${matchVar} = ${exprCode};\n`;
-  
+
   for (let i = 0; i < arms.length; i++) {
     const arm = arms[i];
     const condition = generateMatchCondition(matchVar, arm);
     const body = emitNode(arm.expression);
-    
+
     if (i === 0) {
       code += `  if (${condition}) {\n    return ${body};\n  }`;
     } else if (arm.pattern?.type === "WildcardPattern") {
@@ -239,47 +249,50 @@ function emitMatch(node: ASTNode): string {
       code += ` else if (${condition}) {\n    return ${body};\n  }`;
     }
   }
-  
+
   code += '\n  throw new Error("Non-exhaustive match");\n})()';
-  
+
   return code;
 }
 
 function generateMatchCondition(matchVar: string, arm: any): string {
   const pattern = arm.pattern;
   const guard = arm.guard;
-  
+
   let condition = generatePatternCondition(matchVar, pattern);
-  
+
   if (guard) {
     const guardCode = emitNode(guard);
     condition += ` && (${guardCode})`;
   }
-  
+
   return condition;
 }
 
 function generatePatternCondition(matchVar: string, pattern: any): string {
-  if (!pattern) return "true";
-  
+  if (!pattern) {
+    return "true";
+  }
+
   switch (pattern.type) {
     case "WildcardPattern":
       return "true";
-    
-    case "AtomPattern":
+
+    case "AtomPattern": {
       const atomName = pattern.value.slice(1); // Remove ':' prefix
       return `${matchVar} === Symbol.for("${atomName}")`;
-    
+    }
+
     case "LiteralPattern":
       return `${matchVar} === ${pattern.value}`;
-    
+
     case "VariablePattern":
       // Variables always match, we'll need to bind them in the body
       return "true";
-    
+
     case "ObjectPattern":
       return generateObjectPatternCondition(matchVar, pattern);
-    
+
     default:
       return "true";
   }
@@ -288,15 +301,15 @@ function generatePatternCondition(matchVar: string, pattern: any): string {
 function generateObjectPatternCondition(matchVar: string, pattern: any): string {
   const fields = pattern.children ?? [];
   const conditions: string[] = [];
-  
+
   // Check that it's an object
   conditions.push(`typeof ${matchVar} === 'object' && ${matchVar} !== null`);
-  
+
   for (const field of fields) {
     if (field.value?.key) {
       const key = field.value.key;
       const fieldPattern = field.value.pattern;
-      
+
       if (fieldPattern && fieldPattern.type !== "VariablePattern") {
         const fieldCondition = generatePatternCondition(`${matchVar}.${key}`, fieldPattern);
         conditions.push(fieldCondition);
@@ -306,16 +319,16 @@ function generateObjectPatternCondition(matchVar: string, pattern: any): string 
       }
     }
   }
-  
-  return conditions.join(' && ');
+
+  return conditions.join(" && ");
 }
 
-function emitMatchArm(node: ASTNode): string {
+function emitMatchArm(_node: ASTNode): string {
   // This shouldn't be called directly, arms are handled in emitMatch
   return "// match arm";
 }
 
-function emitPattern(node: ASTNode): string {
+function emitPattern(_node: ASTNode): string {
   // This shouldn't be called directly, patterns are handled in match conditions
   return "// pattern";
 }
