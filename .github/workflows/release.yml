@@ -9,12 +9,15 @@ on:
     branches:
       - main
     paths:
-      - 'VERSION'
-      - '.github/workflows/release.yml'
+      - 'brightscript/VERSION'
+      - 'brightscript/.github/workflows/release.yml'
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./brightscript
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -27,14 +30,71 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Compile all platforms
-        run: bun run compile
-
       - name: Read version
         id: get_version
         run: |
           version=$(<VERSION)
           echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Compile for release
+        run: bun run compile
+
+      - name: Create platform-specific builds
+        run: |
+          mkdir -p build/{linux-x64,darwin-x64,darwin-arm64,windows-x64}
+          
+          # First compile the .bs files to .ts
+          echo "Compiling Britescript files..."
+          # Create a temporary directory for compiled files
+          mkdir -p temp-build/commands
+          
+          # Compile the main CLI entry point
+          echo "Compiling CLI entry point..."
+          bun run scripts/compile.ts ./src/cli/index.bs -o ./temp-build/cli-index.ts
+          
+          # Compile command files
+          echo "Compiling command files..."
+          for file in ./src/cli/commands/*.bs; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file" .bs)
+              echo "Compiling $file to temp-build/commands/$filename.ts"
+              bun run scripts/compile.ts "$file" -o "./temp-build/commands/$filename.ts"
+            fi
+          done
+          
+          # Copy non-BS files
+          echo "Copying TypeScript files..."
+          for file in ./src/cli/commands/*.ts; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "Copying $file to temp-build/commands/$filename"
+              cp "$file" "./temp-build/commands/$filename"
+            fi
+          done
+          
+          # Update imports in the compiled files
+          echo "Updating imports in compiled files..."
+          sed -i 's/\.bs";/\.ts";/g' ./temp-build/cli-index.ts
+          sed -i 's/\.\/commands\/\([^"]*\)\.bs/\.\/commands\/\1/g' ./temp-build/cli-index.ts
+          
+          # Linux x64 build
+          echo "Building for Linux x64..."
+          bun build ./temp-build/cli-index.ts --compile --target=node --outfile=build/linux-x64/britescript
+          chmod +x build/linux-x64/britescript
+          
+          # macOS x64 build
+          echo "Building for macOS x64..."
+          bun build ./temp-build/cli-index.ts --compile --target=bun --outfile=build/darwin-x64/britescript
+          chmod +x build/darwin-x64/britescript
+          
+          # macOS ARM64 build
+          echo "Building for macOS ARM64..."
+          bun build ./temp-build/cli-index.ts --compile --target=bun --outfile=build/darwin-arm64/britescript
+          chmod +x build/darwin-arm64/britescript
+          
+          # Windows x64 build
+          echo "Building for Windows x64..."
+          bun build ./temp-build/cli-index.ts --compile --target=node --outfile=build/windows-x64/britescript.exe
 
       - name: Package Linux x64
         run: |
@@ -56,6 +116,15 @@ jobs:
           zip -j britescript-${{ steps.get_version.outputs.version }}-windows-x64.zip \
             build/windows-x64/britescript.exe
 
+      - name: Move artifacts for release
+        run: |
+          # Move artifacts to the root directory for the release
+          cp britescript-${{ steps.get_version.outputs.version }}-linux-x64.tar.gz ../
+          cp britescript-${{ steps.get_version.outputs.version }}-darwin-x64.tar.gz ../
+          cp britescript-${{ steps.get_version.outputs.version }}-darwin-arm64.tar.gz ../
+          cp britescript-${{ steps.get_version.outputs.version }}-windows-x64.zip ../
+        working-directory: ./brightscript
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -66,5 +135,30 @@ jobs:
             britescript-${{ steps.get_version.outputs.version }}-darwin-x64.tar.gz
             britescript-${{ steps.get_version.outputs.version }}-darwin-arm64.tar.gz
             britescript-${{ steps.get_version.outputs.version }}-windows-x64.zip
+          body: |
+            Britescript v${{ steps.get_version.outputs.version }} Release
+            
+            ## Installation
+            
+            ### Linux
+            ```bash
+            curl -L https://github.com/britescript/britescript/releases/download/v${{ steps.get_version.outputs.version }}/britescript-${{ steps.get_version.outputs.version }}-linux-x64.tar.gz | tar xz
+            sudo mv britescript /usr/local/bin/
+            ```
+            
+            ### macOS (Intel)
+            ```bash
+            curl -L https://github.com/britescript/britescript/releases/download/v${{ steps.get_version.outputs.version }}/britescript-${{ steps.get_version.outputs.version }}-darwin-x64.tar.gz | tar xz
+            sudo mv britescript /usr/local/bin/
+            ```
+            
+            ### macOS (Apple Silicon)
+            ```bash
+            curl -L https://github.com/britescript/britescript/releases/download/v${{ steps.get_version.outputs.version }}/britescript-${{ steps.get_version.outputs.version }}-darwin-arm64.tar.gz | tar xz
+            sudo mv britescript /usr/local/bin/
+            ```
+            
+            ### Windows
+            Download the zip file and extract britescript.exe to a location in your PATH.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

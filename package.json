@@ -18,7 +18,7 @@
     "build": "bun build --config ./build.config.ts",
     "build:release": "bun scripts/build-release.ts",
     "build:cli": "bun scripts/build-cli.ts",
-    "compile": "bun scripts/compile.ts",
+    "compile": "bun run build:release && bun run build:cli",
     "dev": "bun scripts/dev.ts",
     "clean": "rm -rf dist/ build-cli-temp/",
     "test": "bun test",
