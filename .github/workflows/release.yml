@@ -1,0 +1,70 @@
+name: Release
+
+# Grant GITHUB_TOKEN permission to create tags & releases
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'VERSION'
+      - '.github/workflows/release.yml'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Compile all platforms
+        run: bun run compile
+
+      - name: Read version
+        id: get_version
+        run: |
+          version=$(<VERSION)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Package Linux x64
+        run: |
+          tar -czvf britescript-${{ steps.get_version.outputs.version }}-linux-x64.tar.gz \
+            -C build/linux-x64 britescript
+
+      - name: Package macOS x64
+        run: |
+          tar -czvf britescript-${{ steps.get_version.outputs.version }}-darwin-x64.tar.gz \
+            -C build/darwin-x64 britescript
+
+      - name: Package macOS ARM64
+        run: |
+          tar -czvf britescript-${{ steps.get_version.outputs.version }}-darwin-arm64.tar.gz \
+            -C build/darwin-arm64 britescript
+
+      - name: Package Windows x64
+        run: |
+          zip -j britescript-${{ steps.get_version.outputs.version }}-windows-x64.zip \
+            build/windows-x64/britescript.exe
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: v${{ steps.get_version.outputs.version }}
+          files: |
+            britescript-${{ steps.get_version.outputs.version }}-linux-x64.tar.gz
+            britescript-${{ steps.get_version.outputs.version }}-darwin-x64.tar.gz
+            britescript-${{ steps.get_version.outputs.version }}-darwin-arm64.tar.gz
+            britescript-${{ steps.get_version.outputs.version }}-windows-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
