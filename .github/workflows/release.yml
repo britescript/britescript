@@ -12,9 +12,6 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./brightscript
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -120,7 +117,6 @@ jobs:
           cp britescript-${{ steps.get_version.outputs.version }}-darwin-x64.tar.gz ../
           cp britescript-${{ steps.get_version.outputs.version }}-darwin-arm64.tar.gz ../
           cp britescript-${{ steps.get_version.outputs.version }}-windows-x64.zip ../
-        working-directory: ./brightscript
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
