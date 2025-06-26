@@ -1,0 +1,33 @@
+// brite version command - Show version information
+// Rewritten in Britescript! 🚀
+
+// Define structs for version information
+struct VersionInfo {
+  version: string;
+  description: string;
+  runtime: string;
+  platform: string;
+}
+
+// TypeScript/JavaScript imports and main function
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+export function versionCommand() {
+  // Use standard JavaScript for complex operations
+  const packageJsonPath = join(import.meta.dir, "../package.json");
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+  
+  console.log(`brite v${packageJson.version}`);
+  console.log("Britescript CLI - Build amazing projects with clean syntax");
+  console.log(`Runtime: Bun ${Bun.version}`);
+  console.log(`Platform: ${process.platform} ${process.arch}`);
+  console.log("");
+  
+  // Using Britescript pipes for final messages
+  let flairMsg = "🚀 Written in Britescript, powered by Bun!"
+  flairMsg |> console.log
+  
+  let docsMsg = "📖 Documentation: https://britescript.dev"
+  docsMsg |> console.log
+}

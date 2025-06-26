@@ -5,16 +5,22 @@
   "module": "src/index.ts",
   "main": "src/index.ts",
   "type": "module",
+  "bin": {
+    "brite": "./dist/brite"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./runtime": "./src/runtime/index.ts",
-    "./plugin": "./src/plugin/index.ts"
+    "./plugin": "./src/plugin/index.ts",
+    "./cli": "./src/cli/index.bs"
   },
   "scripts": {
     "build": "bun build --config ./build.config.ts",
     "build:release": "bun scripts/build-release.ts",
+    "build:cli": "bun scripts/build-cli.ts",
+    "compile": "bun scripts/compile.ts",
     "dev": "bun scripts/dev.ts",
-    "clean": "rm -rf dist/",
+    "clean": "rm -rf dist/ build-cli-temp/",
     "test": "bun test",
     "lint": "bunx @biomejs/biome lint .",
     "format": "bunx @biomejs/biome format --write ."
@@ -38,7 +44,8 @@
     "compiler",
     "language",
     "structs",
-    "traits"
+    "traits",
+    "cli"
   ],
   "author": "Britescript Team",
   "license": "MIT",

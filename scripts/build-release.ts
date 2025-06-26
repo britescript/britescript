@@ -15,23 +15,16 @@ try {
   // Ignore if doesn't exist
 }
 
-// Build the CLI
+// Build the CLI using our build-cli.ts script
 console.log("🔨 Building CLI...");
-const cliResult = await Bun.build({
-  entrypoints: ["./src/cli/index.ts"],
-  outdir: "./dist",
-  target: "bun",
-  format: "esm",
-  minify: true,
-  sourcemap: "external",
-  naming: {
-    entry: "cli.js"
-  }
+const cliProcess = Bun.spawn(["bun", "scripts/build-cli.ts"], {
+  stdout: "inherit",
+  stderr: "inherit"
 });
 
-if (!cliResult.success) {
-  console.error("❌ CLI build failed:");
-  cliResult.logs.forEach(log => console.error(log));
+const cliExitCode = await cliProcess.exited;
+if (cliExitCode !== 0) {
+  console.error(`❌ CLI build failed with exit code ${cliExitCode}`);
   process.exit(1);
 }
 

@@ -1,0 +1,111 @@
+#!/usr/bin/env bun
+
+// Britescript CLI - brite
+// Main entry point for the Britescript command-line interface
+// Rewritten in Britescript itself! 🚀
+
+// Define structs for better type safety and organization
+struct CLIArgs {
+  command: string;
+  hasHelp: boolean;
+  hasVersion: boolean;
+}
+
+// Define traits for CLI behaviors
+trait ArgumentParser {
+  parse(): string;
+}
+
+trait CommandRouter {
+  route(): string;
+}
+
+// Import command handlers (mixed .bs and .ts)
+import { initCommand } from "./commands/init";
+import { compileCommand } from "./commands/compile.bs";
+import { buildCommand } from "./commands/build.bs";
+import { runCommand } from "./commands/run";
+import { replCommand } from "./commands/repl";
+import { helpCommand } from "./commands/help";
+import { versionCommand } from "./commands/version.bs";
+
+// TypeScript/JavaScript functions for the main logic
+function parseArguments(rawArgs) {
+  const command = rawArgs[0] || "";
+  const hasHelp = rawArgs.includes("--help") || rawArgs.includes("-h");
+  const hasVersion = rawArgs.includes("--version") || rawArgs.includes("-v");
+  
+  return {
+    command,
+    hasHelp,
+    hasVersion
+  };
+}
+
+async function routeCommand(cliArgs) {
+  // Handle global flags first
+  if (cliArgs.hasHelp || cliArgs.command === "help") {
+    const helpTarget = cliArgs.command === "help" ? Bun.argv.slice(3)[0] : undefined;
+    helpCommand(helpTarget);
+    process.exit(0);
+  }
+
+  if (cliArgs.hasVersion || cliArgs.command === "version") {
+    versionCommand();
+    process.exit(0);
+  }
+
+  // Get remaining args for commands
+  const remainingArgs = Bun.argv.slice(3);
+
+  // Route to specific commands
+  switch (cliArgs.command) {
+    case "init":
+      await initCommand(remainingArgs);
+      break;
+    
+    case "compile":
+      await compileCommand(remainingArgs);
+      break;
+    
+    case "build":
+      await buildCommand(remainingArgs);
+      break;
+    
+    case "run":
+      await runCommand(remainingArgs);
+      break;
+    
+    case "repl":
+      await replCommand(remainingArgs);
+      break;
+    
+    case "":
+      // No command provided - show welcome message using Britescript pipes
+      let welcomeMessage = "Welcome to Britescript! 🚀"
+      welcomeMessage |> console.log
+      let helpMessage = "Use 'brite --help' for available commands."
+      helpMessage |> console.log
+      break;
+    
+    default:
+      // Unknown command using Britescript pipes  
+      console.error("Unknown command:", cliArgs.command);
+      let suggestMsg = "Use 'brite --help' for available commands."
+      suggestMsg |> console.log
+      process.exit(1);
+  }
+}
+
+// Main CLI execution using Britescript pipes and structs
+const rawArgs = Bun.argv.slice(2);
+
+// Parse arguments using our struct
+const cliArgs = parseArguments(rawArgs);
+
+// Route to appropriate command
+await routeCommand(cliArgs);
+
+// Show completion message using Britescript pipes
+let completionMsg = "✅ CLI written in Britescript completed successfully!"
+completionMsg |> console.log

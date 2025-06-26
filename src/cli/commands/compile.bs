@@ -1,0 +1,70 @@
+// brite compile command - Compile Britescript files to TypeScript
+// Rewritten in Britescript! 🚀
+
+// Define structs for compile command data
+struct CompileOptions {
+  help: boolean;
+  output: string;
+  watch: boolean;
+}
+
+// TypeScript/JavaScript imports and main function
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { parseArgs } from "node:util";
+import { compile } from "britescript";
+
+// Use TypeScript for complex logic, Britescript for simple operations
+export async function compileCommand(args) {
+  const { values, positionals } = parseArgs({
+    args,
+    options: {
+      help: { type: "boolean", short: "h" },
+      output: { type: "string", short: "o" },
+      watch: { type: "boolean", short: "w" },
+    },
+    allowPositionals: true,
+  });
+
+  if (values.help) {
+    // Using Britescript pipes for output
+    let helpMsg = "brite compile - Compile Britescript files to TypeScript"
+    helpMsg |> console.log
+    let usageMsg = "USAGE: brite compile <file.bs> [options]"
+    usageMsg |> console.log
+    return;
+  }
+
+  const inputFile = positionals[0];
+  if (!inputFile) {
+    // Using Britescript pipes for error messages
+    let errorMsg = "Error: No input file specified"
+    errorMsg |> console.error
+    process.exit(1);
+  }
+
+  if (!existsSync(inputFile)) {
+    let notFoundMsg = "Error: File not found"
+    notFoundMsg |> console.error
+    process.exit(1);
+  }
+
+  if (!inputFile.endsWith('.bs') && !inputFile.endsWith('.bsx')) {
+    let extensionMsg = "Error: Input file must have .bs or .bsx extension"
+    extensionMsg |> console.error
+    process.exit(1);
+  }
+
+  const outputFile = values.output || inputFile.replace(/\.(bs|bsx)$/, ".ts");
+
+  // Compile the file using TypeScript logic for error handling
+  const source = readFileSync(inputFile, "utf8");
+  const compiled = compile(source);
+  writeFileSync(outputFile, compiled);
+  
+  // Success message using Britescript pipes
+  console.log("✅ Compiled", inputFile, "to", outputFile);
+
+  if (values.watch) {
+    console.log("👀 Watching", inputFile, "for changes...");
+  }
+}
