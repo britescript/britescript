@@ -1,4 +1,4 @@
-name: MainRelease
+name: Release
 
 
 permissions:
@@ -8,9 +8,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'brightscript/VERSION'
-      - 'brightscript/.github/workflows/release.yml'
 
 jobs:
   build-and-release:
