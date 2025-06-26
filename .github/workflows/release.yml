@@ -68,7 +68,7 @@ jobs:
           
           # Update imports in the compiled files
           echo "Updating imports in compiled files..."
-          sed -i 's/\.bs";/\.ts";/g' ./temp-build/cli-index.ts
+          sed -i 's/\.bs";/";/g' ./temp-build/cli-index.ts
           sed -i 's/\.\/commands\/\([^"]*\)\.bs/\.\/commands\/\1/g' ./temp-build/cli-index.ts
           
           # Linux x64 build

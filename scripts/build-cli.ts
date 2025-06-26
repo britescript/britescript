@@ -127,6 +127,9 @@ const indexContent = `#!/usr/bin/env bun
 // This is a generated file from build-cli.ts
 // It imports from the compiled Britescript files
 
+// Add a console.log for debugging
+console.log("Britescript CLI starting...");
+
 export * from "./index";
 `;
 writeFileSync(tempIndexPath, indexContent);
