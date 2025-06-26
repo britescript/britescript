@@ -201,10 +201,9 @@ writeFileSync(join("./dist", "package.json"), JSON.stringify(distPackageJson, nu
 console.log("📦 Package metadata created: ./dist/package.json");
 
 // Clean up temporary build directory
-// Uncomment this when everything is working
-// console.log("🧹 Cleaning up temporary files...");
-// import { rmSync } from "node:fs";
-// rmSync(tempBuildDir, { recursive: true, force: true });
+console.log("🧹 Cleaning up temporary files...");
+import { rmSync } from "node:fs";
+rmSync(tempBuildDir, { recursive: true, force: true });
 
 console.log("\n🎉 CLI build complete!");
 console.log("You can now run: ./dist/brite --help");
